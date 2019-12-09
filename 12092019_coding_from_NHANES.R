@@ -661,26 +661,26 @@ dclus2 <-survey::svydesign(id=~SDMVPSU,
                            weights=~WTMEC4YR, 
                            nest = TRUE, 
                            data=dat)
+
+nhanes.2007.to.2012 <- dat[!dat$cycle %in% "2013-2014",]
 ########################################################
 #now to see the xtabs showing rlship btwn weight perception bx
 
 #first write the csv of this data
-write.csv(dat, "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\data\\12052019nhanes.csv")
+write.csv(dat, "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\12092019nhanes.csv")
+write.csv(nhanes.2007.to.2012, "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\12092019no2013.csv")
 
 #########################################################################
 #Cross tabs of each of the weight behavior variables, separated out by sex
-male <- dat[dat$Male == 1,]
-female <- dat[dat$Male == 0,]
+male <- nhanes.2007.to.2012[nhanes.2007.to.2012$Male == 1,]
+female <- nhanes.2007.to.2012[nhanes.2007.to.2012$Male == 0,]
 
 allXtabs <- function(data){
   v1 <- data$LikeToWeigh
   v2 <- data$ConsiderWt
-  v3 <- data$tryNotGain
-  v4 <- data$intentional
-  v6 <- data$lastYrLose
-  listVec <- list(v1, v2, v3, v4, v6)
-  nameVec <- c("likeToWeigh", "considerWt", "tryNotGain",
-               "intentionalWtLoss", "lastYrLose")
+  v3 <- data$doingAbtWt
+  listVec <- list(v1, v2, v3)
+  nameVec <- c("likeToWeigh", "considerWt", "weightAction")
   for (i in 1:(length(listVec)-1)){
     for (j in (i+1):length(listVec)){
       if (i==j) break
@@ -701,7 +701,7 @@ allXtabs(male)
 
 #to make data more manageable, select subset of desired variables
 #which may be used in the LCA
-lcaSub <- dat %>%
+lcaSub <- nhanes.2007.to.2012 %>%
   select(Male, BMIcat, depression, phq9, depressionBinary,
          smkStat, Race, FSDHH, fsWithHunger, kidFScont,
          adFScont, hhFScont, tryNotGain, ConsiderWt,
@@ -712,7 +712,7 @@ lcaSub <- dat %>%
          lastYrDietPill, lastYrSpecDiet, lastYrFruitVeg,
          lastYrSkipMeal, lastYrJoinProgram, lastYrOthRx,
          lastYrMoreH20, lastYrLowCarb, lastYrRestartSmoke,
-         lastYrOther, RIDAGEYR.x, Income, bingeDrk)
+         lastYrOther, RIDAGEYR, Income, bingeDrk, doingAbtWt)
 
 #for 3 categories: add1, then follow up with this add1 again
 add1 <- function(x){
@@ -722,7 +722,9 @@ add1 <- function(x){
 lcaSub <- lcaSub %>%
   mutate_if(.predicate = !(grepl(pattern = "FScont", names(lcaSub)) |
                              grepl(pattern = "RIDAGEYR", names(lcaSub))|
-                             grepl(pattern = "FSDHH", names(lcaSub))), 
+                             grepl(pattern = "FSDHH", names(lcaSub)) |
+                             grepl(pattern = "Income", names(lcaSub))|
+                             grepl(pattern = "doingAbtWt", names(lcaSub))), 
             .funs = add1) 
 
 #like to Weigh and Consider Wt need 1 more added
@@ -732,6 +734,6 @@ lcaSub <- lcaSub %>%
             .funs = add1)
 
 #write csv so that it's readable for LCA
-write.csv(lcaSub,  "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\data\\12052019lca.csv")
-dat <- read.csv(file = "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\data\\fullNHANES.csv")
+write.csv(lcaSub,  "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\12092019lca.csv")
+
 
