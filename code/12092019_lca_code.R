@@ -54,3 +54,26 @@ class3.unc <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
                   constrain.rhos = F, constrain.gammas = T,
                   weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
 compare.fit(class3.con, class3.unc) #yes there is invariance: ChiSq = 1084.811, df = 21, p < 0.001
+
+lcaDat$BMIcat <- lcaDat$BMIcat - 1
+#redo but also using BMI in the LCA
+#first write a function to test LCA classes and get AIC/BIC to select
+get_AIC_BIC_BMI <- function(data, maxclass = 10){
+  aicVec <- c(rep(0,maxclass-1))
+  bicVec <- c(rep(0,maxclass-1))
+  
+  set.seed(50)
+  for (i in 2:maxclass){
+    lc <- lcca::lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
+                    nclass = i, data = data, tol = 1e-06, flatten.rhos = 1, flatten.gammas =1,
+                    iter.max = 15000)
+    
+    aicVec[i] <-  lc$AIC
+    bicVec[i] <-  lc$BIC
+  }
+  return(cbind(aicVec, bicVec))
+}
+
+get_AIC_BIC_BMI(lcaDat, maxclass = 8) #now 5 classes is best
+
+
