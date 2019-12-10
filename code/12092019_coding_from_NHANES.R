@@ -669,7 +669,6 @@ nhanes.2007.to.2012 <- dat[!dat$cycle %in% "2013-2014",]
 #first write the csv of this data
 write.csv(dat, "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\12092019nhanes.csv")
 write.csv(nhanes.2007.to.2012, "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\12092019no2013.csv")
-
 #########################################################################
 #Cross tabs of each of the weight behavior variables, separated out by sex
 male <- nhanes.2007.to.2012[nhanes.2007.to.2012$Male == 1,]
@@ -712,7 +711,8 @@ lcaSub <- nhanes.2007.to.2012 %>%
          lastYrDietPill, lastYrSpecDiet, lastYrFruitVeg,
          lastYrSkipMeal, lastYrJoinProgram, lastYrOthRx,
          lastYrMoreH20, lastYrLowCarb, lastYrRestartSmoke,
-         lastYrOther, RIDAGEYR, Income, bingeDrk, doingAbtWt)
+         lastYrOther, RIDAGEYR, Income, bingeDrk, doingAbtWt,
+         WTMEC2YR, WTMEC6YR, WTMEC4YR, SDMVPSU, SDMVSTRA)
 
 #for 3 categories: add1, then follow up with this add1 again
 add1 <- function(x){
@@ -720,11 +720,13 @@ add1 <- function(x){
 }
 
 lcaSub <- lcaSub %>%
-  mutate_if(.predicate = !(grepl(pattern = "FScont", names(lcaSub)) |
+  mutate_if(.predicate = !(grepl(pattern = "FScont", names(lcaSub))|
                              grepl(pattern = "RIDAGEYR", names(lcaSub))|
                              grepl(pattern = "FSDHH", names(lcaSub)) |
                              grepl(pattern = "Income", names(lcaSub))|
-                             grepl(pattern = "doingAbtWt", names(lcaSub))), 
+                             grepl(pattern = "doingAbtWt", names(lcaSub))|
+                             grepl(pattern = "SDM", names(lcaSub))|
+                             grepl(pattern = "WTMEC", names(lcaSub))), 
             .funs = add1) 
 
 #like to Weigh and Consider Wt need 1 more added
@@ -735,5 +737,6 @@ lcaSub <- lcaSub %>%
 
 #write csv so that it's readable for LCA
 write.csv(lcaSub,  "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\12092019lca.csv")
-
+lcaSub <- read.csv("C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\12092019lca.csv")
+nhanes.2007.to.2012 <- read.csv("C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\12092019no2013.csv")
 
