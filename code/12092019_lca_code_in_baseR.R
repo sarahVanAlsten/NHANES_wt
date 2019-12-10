@@ -333,6 +333,7 @@ summary(of3b)
 summary(om3b)
 
 ######################################################################
+xtabs(~Race+FSDHH+Male, data = lcaDat)
 #now need to see if also invariance by food security status
 #will have to do individually for each Race/Sex pairing
 fsInvariance <- function(data, Race, Male, classNum){
@@ -363,7 +364,90 @@ fsInvariance(lcaDat, 3, 2, 3) #hispanic male: NO
 fsInvariance(lcaDat, 4, 1, 3) #other female: NO
 fsInvariance(lcaDat, 4, 2, 3) #other male: NO
 
+#Same but including BMI
+fsInvarianceBMI <- function(data, Race, Male, classNum){
+	set.seed(25)
+
+	dat <- data[data$Race == Race & data$Male == Male & !is.na(data$FSDHH),]
+	unc <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
+                  nclass = classNum, data = dat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000,
+			constrain.rhos = F, constrain.gammas = T,group = factor(FSDHH))
+	set.seed(25)
+	con <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
+                  nclass = classNum, data = dat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000,
+			constrain.rhos = T, constrain.gammas = T,group = factor(FSDHH))
+
+	return(compare.fit(unc,con))
+
+}
+
+#test the invariance
+fsInvarianceBMI(lcaDat, 1, 1, 4) #white female: yes chisq = 224.0589, df = 156, p < 0.001
+fsInvarianceBMI(lcaDat, 1, 2, 3) #white male: NO
+fsInvarianceBMI(lcaDat, 2, 1, 3) #black female: NO
+fsInvarianceBMI(lcaDat, 2, 2, 3) #black male: NO
+fsInvarianceBMI(lcaDat, 3, 1, 3) #hispanic female: NO
+fsInvarianceBMI(lcaDat, 3, 2, 3) #hispanic male: NO
+fsInvarianceBMI(lcaDat, 4, 1, 3) #other female: NO
+fsInvarianceBMI(lcaDat, 4, 2, 3) #other male: NO
+
+#in general, FS doesnt seem measurement invariant by race*sex
+#does class prev differ by FS?
+
+fsInvariancegam <- function(data, Race, Male, classNum){
+	set.seed(25)
+
+	dat <- data[data$Race == Race & data$Male == Male & !is.na(data$FSDHH),]
+	unc <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
+                  nclass = classNum, data = dat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000,
+			constrain.rhos = T, constrain.gammas = F,group = factor(FSDHH))
+	set.seed(25)
+	con <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
+                  nclass = classNum, data = dat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000,
+			constrain.rhos = T, constrain.gammas = T,group = factor(FSDHH))
+
+	return(compare.fit(unc,con))
+
+}
+#test the invariance
+fsInvariancegam(lcaDat, 1, 1, 4) #white female: yes chisq = 53.10903, df = 9, p < 0.001
+fsInvariancegam(lcaDat, 1, 2, 3) #white male:NO
+fsInvariancegam(lcaDat, 2, 1, 3) #black female: YES chisq = 14.14369, df = 6, p = 0.02807166
+fsInvariancegam(lcaDat, 2, 2, 3) #black male: YES chisq = 22.41037, df = 6, p = 0.001020034
+fsInvariancegam(lcaDat, 3, 1, 3) #hispanic female: NO, chisq = 11.8716, df = 6, p = 0.0648953
+fsInvariancegam(lcaDat, 3, 2, 3) #hispanic male: YES, chisq = 16.3488, df = 6, p = 0.01199934
+fsInvariancegam(lcaDat, 4, 1, 3) #other female: NO
+fsInvariancegam(lcaDat, 4, 2, 3) #other male: NO
 
 
+#Same but including BMI
+fsInvarianceBMIgam <- function(data, Race, Male, classNum){
+	set.seed(25)
 
+	dat <- data[data$Race == Race & data$Male == Male & !is.na(data$FSDHH),]
+	unc <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
+                  nclass = classNum, data = dat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000,
+			constrain.rhos = T, constrain.gammas = F,group = factor(FSDHH))
+	set.seed(25)
+	con <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
+                  nclass = classNum, data = dat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000,
+			constrain.rhos = T, constrain.gammas = T,group = factor(FSDHH))
 
+	return(compare.fit(unc,con))
+
+}
+#test the invariance
+fsInvarianceBMIgam(lcaDat, 1, 1, 4) #white female: yes chisq = 201.2054, df = 9, p < 0.001
+fsInvarianceBMIgam(lcaDat, 1, 2, 3) #white male: YES chisq = 50.36528, df = 6, p < 0.001
+fsInvarianceBMIgam(lcaDat, 2, 1, 3) #black female: NO
+fsInvarianceBMIgam(lcaDat, 2, 2, 3) #black male: YES chisq = 23.55243, df = 6, p < 0.001
+fsInvarianceBMIgam(lcaDat, 3, 1, 3) #hispanic female: NO
+fsInvarianceBMIgam(lcaDat, 3, 2, 3) #hispanic male: NO, chisq = 11.77494, df = 6, p = 0.06718
+fsInvarianceBMIgam(lcaDat, 4, 1, 3) #other female: NO
+fsInvarianceBMIgam(lcaDat, 4, 2, 3) #other male: NO
