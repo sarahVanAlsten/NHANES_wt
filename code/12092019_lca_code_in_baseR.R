@@ -153,7 +153,7 @@ male3 <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
                   flatten.gammas =1, iter.max = 20000, subpop = (Male == 2),
                   weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
 
-summary(male3)
+summary(male3, show.all = T)
 
 set.seed(100)
 female3 <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
@@ -275,24 +275,31 @@ get_AIC_BIC_BMI(hf, maxclass = 8) #3 classes
 get_AIC_BIC_BMI(om, maxclass = 8) #3 classes
 get_AIC_BIC_BMI(of, maxclass = 8) #3 classes
 
+lcaDat$RaceMale <- paste(lcaDat$Race, lcaDat$Male, sep = "")
 #print out the appropriate classifications for each group
-maleAndRaceSummary <- function(data, Race, Male, classNum){
+maleAndRaceSummary <- function(data, pop, classNum){
 
 	return(lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
                   nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
                   flatten.gammas =1, iter.max = 20000,
-                  subpop = (Male == Male & Race == Race),
+                  subpop = (RaceMale == pop),
                   weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA))
 }
 
-wf3 <- maleAndRaceSummary(lcaDat, 1, 1, 3)
-wm3 <- maleAndRaceSummary(lcaDat, 1, 2, 3)
-bf3 <- maleAndRaceSummary(lcaDat, 2, 1, 3)
-bm3 <- maleAndRaceSummary(lcaDat, 2, 2, 3)
-hf3 <- maleAndRaceSummary(lcaDat, 3, 1, 3)
-hm3 <- maleAndRaceSummary(lcaDat, 3, 2, 3)
-of3 <- maleAndRaceSummary(lcaDat, 3, 1, 3)
-om3 <- maleAndRaceSummary(lcaDat, 3, 2, 3)
+wf3 <- maleAndRaceSummary(lcaDat, "11", 3)
+wf3 <- permute.class(wf3, c(3, 1, 2)) #move so 1= stay same, 2 = weigh more, 3 = weigh less
+wm3 <- maleAndRaceSummary(lcaDat, "12", 3) 
+wm3 <- permute.class(wm3, c(2, 1, 3))
+bf3 <- maleAndRaceSummary(lcaDat, "21", 3)
+bm3 <- maleAndRaceSummary(lcaDat, "22", 3)
+hf3 <- maleAndRaceSummary(lcaDat, "31", 3)
+hf3 <- permute.class(hf3, c(3, 2, 1))
+hm3 <- maleAndRaceSummary(lcaDat, "32", 3)
+hm3 <- permute.class(hm3, c(1, 3, 2))
+of3 <- maleAndRaceSummary(lcaDat, "41", 3)
+of3 <- permute.class(of3, c(2, 1, 3))
+om3 <- maleAndRaceSummary(lcaDat, "42", 3)
+om3 <- permute.class(om3, c(3, 2, 1))
 
 summary(wf3)
 summary(wm3)
@@ -302,6 +309,57 @@ summary(hf3)
 summary(hm3)
 summary(of3)
 summary(om3)
+
+#get the class prevalences for each race/sex so we can put them together
+omp <- om3$theta[(length(om3$theta)-1):length(om3$theta)] #.42 same, .12 more, .47 less
+ofp <- of3$theta[(length(of3$theta)-1):length(of3$theta)] #.37 same, .07 more, .56 less
+bmp <- bm3$theta[(length(bm3$theta)-1):length(bm3$theta)] #.38 same, .16 more, .45 less
+bfp <- bf3$theta[(length(bf3$theta)-1):length(bf3$theta)] #.23 same, .07 more, .70 less
+wmp <- wm3$theta[(length(wm3$theta)-1):length(wm3$theta)] #.31 same, .10 more, .59 less
+wfp <- wf3$theta[(length(wf3$theta)-1):length(wf3$theta)] #.24 same, .02 more, .74 less
+hmp <- hm3$theta[(length(hm3$theta)-1):length(hm3$theta)] #.43 same, .06 more, .52 less
+hfp <- hf3$theta[(length(hf3$theta)-1):length(hf3$theta)] #.24 same, .05 more, .71 less
+
+library(magrittr)
+#get prevalence for third class by subtracting sum of other 2 from 100
+getThirdClass <- function(ls){
+	class3prev <- 1 - ls[1] - ls[2]
+	newName <- ""
+	compName <- sort(names(ls))
+
+	if (!"gamma[1,1]" == compName[1]){
+		newName <- "gamma[1,1]"
+	} else if(!"gamma[2,1]" == compName[2]){
+		newName <- "gamma[2,1]"
+	} else{
+		newName <- "gamma[3,1]"
+	}
+
+	allNames <- append(names(ls), newName)
+	allValues <- append(ls, class3prev)
+	names(allValues) <- allNames
+	return(allValues)
+}
+omp <- t(as.data.frame(getThirdClass(omp)))
+ofp <- t(as.data.frame(getThirdClass(ofp)))
+bmp <- t(as.data.frame(getThirdClass(bmp)))
+bfp <- t(as.data.frame(getThirdClass(bfp)))
+wmp <- t(as.data.frame(getThirdClass(wmp)))
+wfp <- t(as.data.frame(getThirdClass(wfp)))
+hmp <- t(as.data.frame(getThirdClass(hmp)))
+hfp <- t(as.data.frame(getThirdClass(hfp)))
+
+omp <- omp[ , order(colnames(omp))]
+bmp <- bmp[ , order(colnames(bmp))]
+hmp <- hmp[ , order(colnames(hmp))]
+wmp <- wmp[ , order(colnames(wmp))]
+ofp <- ofp[ , order(colnames(ofp))]
+bfp <- bfp[ , order(colnames(bfp))]
+hfp <- hfp[ , order(colnames(hfp))]
+wfp <- wfp[ , order(colnames(wfp))]
+
+allprev <- rbind(omp, bmp, hmp, wmp, ofp, bfp, hfp, wfp)
+
 ##########################################
 #repeat for BMI
 
@@ -647,4 +705,45 @@ get_AIC_BIC_fsr(lcaDat, 8, 232) #male hispanic insecure = 3 class
 get_AIC_BIC_fsr(lcaDat, 8, 241) #male other secure = 3 class
 get_AIC_BIC_fsr(lcaDat, 8, 242) #male other insecure = 2 class
 
+#see if it helps to run this as LCACOV and just include fs, male, and race as predictors
 
+lcacov.mod <- lcacov(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~factor(Male)+factor(fsAny)+factor(Race),
+                  nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000, strata = SDMVSTRA, clusters = SDMVPSU,
+		    weights = WTMEC6YR)
+
+summary(lcacov.mod)
+
+lcacov.mod.int <- lcacov(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~factor(Male)*factor(fsAny)*factor(Race),
+                  nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000, strata = SDMVSTRA, clusters = SDMVPSU,
+		    weights = WTMEC6YR)
+
+summary(lcacov.mod.int, show.all =T)
+
+
+lcacov.mod.int.2a <- lcacov(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~factor(Male)*factor(Race)+
+		     factor(fsAny),
+                  nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 50000, strata = SDMVSTRA, clusters = SDMVPSU,
+		    weights = WTMEC6YR)
+
+summary(lcacov.mod.int.2a, show.all =T)
+
+#############################################################
+
+lcacov.mod.intb <- lcacov(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~factor(Male)*factor(fsAny)*factor(Race),
+                  nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000, strata = SDMVSTRA, clusters = SDMVPSU,
+		    weights = WTMEC6YR)
+
+summary(lcacov.mod.intb, show.all =T)
+
+
+lcacov.mod.int.2 <- lcacov(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~factor(Male)*factor(Race)+
+		     factor(fsAny),
+                  nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 50000, strata = SDMVSTRA, clusters = SDMVPSU,
+		    weights = WTMEC6YR)
+
+summary(lcacov.mod.int.2, show.all =T)
