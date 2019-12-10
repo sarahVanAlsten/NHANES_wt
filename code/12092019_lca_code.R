@@ -39,3 +39,18 @@ class3 <-lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
              weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
 summary(class3)
 
+#now see if there is class invariance by gender
+set.seed(87)
+class3.con <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
+                 nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
+                 flatten.gammas =1, iter.max = 20000, group = factor(Male),
+                 constrain.rhos = T, constrain.gammas = T,
+                 weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
+
+set.seed(99)
+class3.unc <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
+                  nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 20000, group = factor(Male),
+                  constrain.rhos = F, constrain.gammas = T,
+                  weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
+compare.fit(class3.con, class3.unc) #yes there is invariance: ChiSq = 1084.811, df = 21, p < 0.001
