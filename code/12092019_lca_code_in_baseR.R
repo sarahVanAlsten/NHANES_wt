@@ -151,7 +151,6 @@ set.seed(100)
 male3 <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
                   nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
                   flatten.gammas =1, iter.max = 20000, subpop = (Male == 2),
-                  constrain.rhos = T, constrain.gammas = T,
                   weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
 
 summary(male3)
@@ -160,7 +159,6 @@ set.seed(100)
 female3 <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
                   nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
                   flatten.gammas =1, iter.max = 20000, subpop = (Male == 1),
-                  constrain.rhos = T, constrain.gammas = T,
                   weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
 
 summary(female3)
@@ -169,7 +167,6 @@ set.seed(100)
 maleBMI4 <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
                   nclass = 4, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
                   flatten.gammas =1, iter.max = 20000, subpop = (Male == 2),
-                  constrain.rhos = T, constrain.gammas = T,
                   weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
 
 summary(maleBMI4)
@@ -178,7 +175,6 @@ set.seed(100)
 femaleBMI3 <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
                   nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
                   flatten.gammas =1, iter.max = 20000, subpop = (Male == 1),
-                  constrain.rhos = T, constrain.gammas = T,
                   weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
 
 summary(femaleBMI3)
@@ -259,4 +255,50 @@ class3m.unc <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
                   weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
 compare.fit(class3m.con, class3m.unc) #yes there is invariance: ChiSq = 495.2879, df = 72, p < 0.001
 
+#####################################################################
+#now need to choose optimal class number for each race/gender subgroup
+get_AIC_BIC(wm, maxclass = 8) #3 classes
+get_AIC_BIC(wf, maxclass = 8) #3 classes
+get_AIC_BIC(bm, maxclass = 8) #3 classes
+get_AIC_BIC(bf, maxclass = 8) #3 classes
+get_AIC_BIC(hm, maxclass = 8) #3 classes
+get_AIC_BIC(hf, maxclass = 8) #3 classes
+get_AIC_BIC(om, maxclass = 8) #3 classes
+get_AIC_BIC(of, maxclass = 8) #3 classes
 
+get_AIC_BIC_BMI(wm, maxclass = 8) #3 classes
+get_AIC_BIC_BMI(wf, maxclass = 8) #4 classes
+get_AIC_BIC_BMI(bm, maxclass = 8) #3 classes
+get_AIC_BIC_BMI(bf, maxclass = 8) #3 classes
+get_AIC_BIC_BMI(hm, maxclass = 8) #3 classes
+get_AIC_BIC_BMI(hf, maxclass = 8) #3 classes
+get_AIC_BIC_BMI(om, maxclass = 8) #3 classes
+get_AIC_BIC_BMI(of, maxclass = 8) #3 classes
+
+#print out the appropriate classifications for each group
+maleAndRaceSummary <- function(data, Race, Male, classNum){
+
+	return(lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
+                  nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 20000,
+                  subpop = (Male == Male & Race == Race),
+                  weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA))
+}
+
+wf3 <- maleAndRaceSummary(lcaDat, 1, 1, 3)
+wm3 <- maleAndRaceSummary(lcaDat, 1, 2, 3)
+bf3 <- maleAndRaceSummary(lcaDat, 2, 1, 3)
+bm3 <- maleAndRaceSummary(lcaDat, 2, 2, 3)
+hf3 <- maleAndRaceSummary(lcaDat, 3, 1, 3)
+hm3 <- maleAndRaceSummary(lcaDat, 3, 2, 3)
+of3 <- maleAndRaceSummary(lcaDat, 3, 1, 3)
+om3 <- maleAndRaceSummary(lcaDat, 3, 2, 3)
+
+summary(wf3)
+summary(wm3)
+summary(bf3)
+summary(bm3)
+summary(hf3)
+summary(hm3)
+summary(of3)
+summary(om3)
