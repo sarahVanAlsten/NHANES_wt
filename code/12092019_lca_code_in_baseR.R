@@ -302,3 +302,68 @@ summary(hf3)
 summary(hm3)
 summary(of3)
 summary(om3)
+##########################################
+#repeat for BMI
+
+maleAndRaceSummaryB <- function(data, Race, Male, classNum){
+
+	return(lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
+                  nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 20000,
+                  subpop = (Male == Male & Race == Race),
+                  weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA))
+}
+
+wf4b <- maleAndRaceSummary(lcaDat, 1, 1, 4)
+wm3b <- maleAndRaceSummary(lcaDat, 1, 2, 3)
+bf3b <- maleAndRaceSummary(lcaDat, 2, 1, 3)
+bm3b <- maleAndRaceSummary(lcaDat, 2, 2, 3)
+hf3b <- maleAndRaceSummary(lcaDat, 3, 1, 3)
+hm3b <- maleAndRaceSummary(lcaDat, 3, 2, 3)
+of3b <- maleAndRaceSummary(lcaDat, 3, 1, 3)
+om3b <- maleAndRaceSummary(lcaDat, 3, 2, 3)
+
+summary(wf4b)
+summary(wm3b)
+summary(bf3b)
+summary(bm3b)
+summary(hf3b)
+summary(hm3b)
+summary(of3b)
+summary(om3b)
+
+######################################################################
+#now need to see if also invariance by food security status
+#will have to do individually for each Race/Sex pairing
+fsInvariance <- function(data, Race, Male, classNum){
+	set.seed(25)
+
+	dat <- data[data$Race == Race & data$Male == Male & !is.na(data$FSDHH),]
+	unc <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
+                  nclass = classNum, data = dat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000,
+			constrain.rhos = F, constrain.gammas = T,group = factor(FSDHH))
+	set.seed(25)
+	con <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
+                  nclass = classNum, data = dat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000,
+			constrain.rhos = T, constrain.gammas = T,group = factor(FSDHH))
+
+	return(compare.fit(unc,con))
+
+}
+
+#test the invariance
+fsInvariance(lcaDat, 1, 1, 4) #white female: yes chisq = 130.8165, df = 96, p = 0.0105
+fsInvariance(lcaDat, 1, 2, 3) #white male: NO
+fsInvariance(lcaDat, 2, 1, 3) #black female: yes chisq = 156.5142, df = 72, p < 0.001
+fsInvariance(lcaDat, 2, 2, 3) #black male: NO
+fsInvariance(lcaDat, 3, 1, 3) #hispanic female: NO
+fsInvariance(lcaDat, 3, 2, 3) #hispanic male: NO
+fsInvariance(lcaDat, 4, 1, 3) #other female: NO
+fsInvariance(lcaDat, 4, 2, 3) #other male: NO
+
+
+
+
+
