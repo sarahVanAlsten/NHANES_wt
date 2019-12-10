@@ -359,6 +359,21 @@ hfp <- hfp[ , order(colnames(hfp))]
 wfp <- wfp[ , order(colnames(wfp))]
 
 allprev <- rbind(omp, bmp, hmp, wmp, ofp, bfp, hfp, wfp)
+write.csv(allprev, "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\raceSexClassPrev.csv")
+################################################################################
+
+#now get the item endorsement probabilites for each class so those can be compared
+#These are structured as: Var, ResponseLevel, Class, FlatteningConstant
+#get the IEPs for each race/sex so we can put them together
+ompI <- om3$theta[length(om3$theta)-2:length(om3$theta)]
+ofpI <- of3$theta[length(of3$theta)-2:length(of3$theta)] 
+wmpI <- wm3$theta[length(wm3$theta)-2:length(wm3$theta)]
+wfpI <- wf3$theta[length(wf3$theta)-2:length(wf3$theta)] 
+hmpI <- hm3$theta[length(hm3$theta)-2:length(hm3$theta)]
+hfpI <- hf3$theta[length(hf3$theta)-2:length(hf3$theta)] 
+bmpI <- bm3$theta[length(bm3$theta)-2:length(bm3$theta)]
+bfpI <- bf3$theta[length(bf3$theta)-2:length(bf3$theta)] 
+
 
 ##########################################
 #repeat for BMI
