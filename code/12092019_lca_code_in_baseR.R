@@ -413,7 +413,7 @@ fsInvariancegam <- function(data, Race, Male, classNum){
 	return(compare.fit(unc,con))
 
 }
-#test the invariance
+#test the invariance in prevalence
 fsInvariancegam(lcaDat, 1, 1, 4) #white female: yes chisq = 53.10903, df = 9, p < 0.001
 fsInvariancegam(lcaDat, 1, 2, 3) #white male:NO
 fsInvariancegam(lcaDat, 2, 1, 3) #black female: YES chisq = 14.14369, df = 6, p = 0.02807166
@@ -424,7 +424,7 @@ fsInvariancegam(lcaDat, 4, 1, 3) #other female: NO
 fsInvariancegam(lcaDat, 4, 2, 3) #other male: NO
 
 
-#Same but including BMI
+#Same but including BMI 
 fsInvarianceBMIgam <- function(data, Race, Male, classNum){
 	set.seed(25)
 
@@ -442,7 +442,7 @@ fsInvarianceBMIgam <- function(data, Race, Male, classNum){
 	return(compare.fit(unc,con))
 
 }
-#test the invariance
+#test the invariance in prevalence
 fsInvarianceBMIgam(lcaDat, 1, 1, 4) #white female: yes chisq = 201.2054, df = 9, p < 0.001
 fsInvarianceBMIgam(lcaDat, 1, 2, 3) #white male: YES chisq = 50.36528, df = 6, p < 0.001
 fsInvarianceBMIgam(lcaDat, 2, 1, 3) #black female: NO
@@ -451,3 +451,200 @@ fsInvarianceBMIgam(lcaDat, 3, 1, 3) #hispanic female: NO
 fsInvarianceBMIgam(lcaDat, 3, 2, 3) #hispanic male: NO, chisq = 11.77494, df = 6, p = 0.06718
 fsInvarianceBMIgam(lcaDat, 4, 1, 3) #other female: NO
 fsInvarianceBMIgam(lcaDat, 4, 2, 3) #other male: NO
+
+lcaDat$fsAny <- ifelse(lcaDat$FSDHH > 1, 2, 1)
+fsAnyInvarianceBMI <- function(data, Race, Male, classNum){
+	set.seed(25)
+
+	dat <- data[data$Race == Race & data$Male == Male & !is.na(data$fsAny),]
+	unc <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
+                  nclass = classNum, data = dat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000,
+			constrain.rhos = F, constrain.gammas = T,group = factor(fsAny))
+	set.seed(25)
+	con <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
+                  nclass = classNum, data = dat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000,
+			constrain.rhos = T, constrain.gammas = T,group = factor(fsAny))
+
+	return(compare.fit(unc,con))
+
+}
+#test the invariance with ANY food insecurity 
+fsAnyInvarianceBMI(lcaDat, 1, 1, 4) #white female: yes chisq = 152.27, df = 52, p < 0.001
+fsAnyInvarianceBMI(lcaDat, 1, 2, 3) #white male: YES chisq = 105.71, df = 29, p < 0.001
+fsAnyInvarianceBMI(lcaDat, 2, 1, 3) #black female: YES chisq = 59.95773, df = 39, p = 0.01707
+fsAnyInvarianceBMI(lcaDat, 2, 2, 3) #black male: NO
+fsAnyInvarianceBMI(lcaDat, 3, 1, 3) #hispanic female: YES chisq - 85.02446, df = 39, p < 0.001
+fsAnyInvarianceBMI(lcaDat, 3, 2, 3) #hispanic male: YES chisq = 74.98663, df = 39, p < 0.001
+fsAnyInvarianceBMI(lcaDat, 4, 1, 3) #other female: YES chisq = 56.5053, df = 39, p = 0.03452188
+fsAnyInvarianceBMI(lcaDat, 4, 2, 3) #other male: NO
+
+fsAnyInvariance<- function(data, Race, Male, classNum){
+	set.seed(25)
+
+	dat <- data[data$Race == Race & data$Male == Male & !is.na(data$fsAny),]
+	unc <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
+                  nclass = classNum, data = dat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000,
+			constrain.rhos = F, constrain.gammas = T,group = factor(fsAny))
+	set.seed(25)
+	con <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
+                  nclass = classNum, data = dat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000,
+			constrain.rhos = T, constrain.gammas = T,group = factor(fsAny))
+
+	return(compare.fit(unc,con))
+
+}
+
+#test the invariance with ANY food insecurity 
+fsAnyInvariance(lcaDat, 1, 1, 4) #white female: yes chisq = 82.5133, df = 32, p < 0.001
+fsAnyInvariance(lcaDat, 1, 2, 3) #white male: YES chisq = 74.34945, df = 24, p < 0.001
+fsAnyInvariance(lcaDat, 2, 1, 3) #black female: YES chisq = 196.6918, df = 24, p < 0.001
+fsAnyInvariance(lcaDat, 2, 2, 3) #black male: NO chisq = 32.95979, df = 24, p = .107
+fsAnyInvariance(lcaDat, 3, 1, 3) #hispanic female: NO
+fsAnyInvariance(lcaDat, 3, 2, 3) #hispanic male: YES chisq = 48.92015, df = 24, p = 0.001938445
+fsAnyInvariance(lcaDat, 4, 1, 3) #other female: NO
+fsAnyInvariance(lcaDat, 4, 2, 3) #other male: NO
+
+#and try and do it including survey weights
+lcaDat$sexRace <- paste(lcaDat$Male, lcaDat$Race)
+table(lcaDat$sexRace)
+
+
+fsAnyInvarianceSvy <- function(data, pop, classNum){
+	set.seed(25)
+	dat <- data[!is.na(data$fsAny),]
+	unc <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
+                  nclass = classNum, data = dat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000, subpop = (sexRace == pop),
+		strata = SDMVSTRA, clusters = SDMVPSU, weights = WTMEC6YR, 
+			constrain.rhos = F, constrain.gammas = T,group = factor(fsAny))
+	set.seed(25)
+	con <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
+                  nclass = classNum, data = dat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000, subpop = (sexRace == pop),
+		strata = SDMVSTRA, clusters = SDMVPSU, weights = WTMEC6YR,
+			constrain.rhos = T, constrain.gammas = T,group = factor(fsAny))
+
+	return(compare.fit(unc,con))
+
+}
+#test the invariance with ANY food insecurity 
+fsAnyInvarianceSvy(lcaDat, "1 1", 4) #white female: yes chisq = 291.4122, df = 32, p < 0.001
+fsAnyInvarianceSvy(lcaDat, "1 2", 3) #black female: YES chisq = 67.56775, df = 24, p < 0.001
+fsAnyInvarianceSvy(lcaDat, "2 1", 3) #white male: NO
+fsAnyInvarianceSvy(lcaDat, "2 2", 3) #black male: YES chisq = 82.110, df = 24, p < 0.001
+fsAnyInvarianceSvy(lcaDat, "1 3", 3) #hispanic female: NO
+fsAnyInvarianceSvy(lcaDat, "2 3", 3) #hispanic male: YES chisq = 141.3081, df = 24, p <0.001
+fsAnyInvarianceSvy(lcaDat, "1 4", 3) #other female: NO
+fsAnyInvarianceSvy(lcaDat, "2 4", 3) #other male: YES chisq = 52.96364, df = 24, p < 0.001
+
+
+
+fsAnyInvarianceSvyB <- function(data, pop, classNum){
+	set.seed(25)
+	dat <- data[!is.na(data$fsAny),]
+	unc <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
+                  nclass = classNum, data = dat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000, subpop = (sexRace == pop),
+		strata = SDMVSTRA, clusters = SDMVPSU, weights = WTMEC6YR, 
+			constrain.rhos = F, constrain.gammas = T,group = factor(fsAny))
+	set.seed(25)
+	con <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
+                  nclass = classNum, data = dat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000, subpop = (sexRace == pop),
+		strata = SDMVSTRA, clusters = SDMVPSU, weights = WTMEC6YR,
+			constrain.rhos = T, constrain.gammas = T,group = factor(fsAny))
+
+	return(compare.fit(unc,con))
+
+}
+#test the invariance with ANY food insecurity 
+fsAnyInvarianceSvyB(lcaDat, "1 1", 4) #white female: yes chisq = 776.3162, df = 52, p < 0.001
+fsAnyInvarianceSvyB(lcaDat, "1 2", 3) #black female: YES chisq = 136.144, df = 39, p < 0.001
+fsAnyInvarianceSvyB(lcaDat, "2 1", 3) #white male: YES chisq = 176.3391, df = 39, p < 0.001
+fsAnyInvarianceSvyB(lcaDat, "2 2", 3) #black male: YES chisq = 102.1128, df = 39, p < 0.001
+fsAnyInvarianceSvyB(lcaDat, "1 3", 3) #hispanic female: YES chisq = 249.6584, df = 39, p < 0.001
+fsAnyInvarianceSvyB(lcaDat, "2 3", 3) #hispanic male: YES chisq = 234.7757, df = 39, p <0.001
+fsAnyInvarianceSvyB(lcaDat, "1 4", 3) #other female: YES chisq = 110.9595, df = 39, p < 0.001
+fsAnyInvarianceSvyB(lcaDat, "2 4", 3) #other male:NO
+
+#having any food insecurity vs no food insecurity has class differences
+#now need to know optimal number of classes for each fs*sex*race combo
+
+lcaDat$maleRaceFS <- paste(lcaDat$Male, lcaDat$Race, lcaDat$fsAny, sep = "")
+lcaDat$maleRaceFS <- ifelse(grepl(pattern = "NA", lcaDat$maleRaceFS), NA, lcaDat$maleRaceFS)
+table(lcaDat$maleRaceFS)
+
+#write function to get aic and bic for food/sex/race combo
+get_AIC_BIC_fsr <- function(data, maxclass, fsr){
+	aicVec <- c(rep(0,maxclass))
+	bicVec <- c(rep(0,maxclass))
+	dat <- data[data$maleRaceFS == fsr,]
+	for (i in 2:maxclass){
+	lc <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
+                  nclass = i, data = dat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000)
+	aicVec[i] <- lc$AIC
+	bicVec[i] <- lc$BIC
+	}
+	return(cbind(aicVec, bicVec))
+}
+
+get_AIC_BIC_fsr(lcaDat, 8, 111) #female white secure = 4 class
+get_AIC_BIC_fsr(lcaDat, 8, 112) #female white insecure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 121) #female black secure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 122) #female black insecure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 131) #female hispanic secure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 132) #female hispanic insecure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 141) #female other secure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 142) #female other insecure = 2 class
+
+
+get_AIC_BIC_fsr(lcaDat, 8, 211) #male white secure = 4 class
+get_AIC_BIC_fsr(lcaDat, 8, 212) #male white insecure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 221) #male black secure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 222) #male black insecure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 231) #male hispanic secure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 232) #male hispanic insecure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 241) #male other secure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 242) #male other insecure = 2 class
+
+
+#write function to get aic and bic for food/sex/race combo without BMI included
+get_AIC_BIC_fsr <- function(data, maxclass, fsr){
+	aicVec <- c(rep(0,maxclass))
+	bicVec <- c(rep(0,maxclass))
+	dat <- data[data$maleRaceFS == fsr,]
+	for (i in 2:maxclass){
+	lc <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
+                  nclass = i, data = dat, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 40000)
+	aicVec[i] <- lc$AIC
+	bicVec[i] <- lc$BIC
+	}
+	return(cbind(aicVec, bicVec))
+}
+
+get_AIC_BIC_fsr(lcaDat, 8, 111) #female white secure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 112) #female white insecure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 121) #female black secure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 122) #female black insecure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 131) #female hispanic secure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 132) #female hispanic insecure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 141) #female other secure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 142) #female other insecure = 2 class
+
+
+get_AIC_BIC_fsr(lcaDat, 8, 211) #male white secure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 212) #male white insecure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 221) #male black secure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 222) #male black insecure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 231) #male hispanic secure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 232) #male hispanic insecure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 241) #male other secure = 3 class
+get_AIC_BIC_fsr(lcaDat, 8, 242) #male other insecure = 2 class
+
+
