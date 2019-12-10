@@ -6,6 +6,7 @@
 # Packages Used: lcca                                 #
 # Last Update: December 09, 2019                      #
 #######################################################
+#note this should be run in R 3.0.0!!!
 
 #open up the needed library
 library(lcca)
@@ -180,6 +181,83 @@ femaleBMI3 <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
                   weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
 
 summary(femaleBMI3)
+
+########################################################################
+#now test class invariance by Race
+wm <- lcaDat[lcaDat$Male == 2 & lcaDat$Race == 1,]
+wf <- lcaDat[lcaDat$Male == 1 & lcaDat$Race == 1,]
+bm <- lcaDat[lcaDat$Male == 2 & lcaDat$Race == 2,]
+bf <- lcaDat[lcaDat$Male == 1 & lcaDat$Race == 2,]
+hm <- lcaDat[lcaDat$Male == 2 & lcaDat$Race == 3,]
+hf <- lcaDat[lcaDat$Male == 1 & lcaDat$Race == 3,]
+om <- lcaDat[lcaDat$Male == 2 & lcaDat$Race == 4,]
+of <- lcaDat[lcaDat$Male == 1 & lcaDat$Race == 4,]
+
+#Females first: 3 classes with BMI
+set.seed(87)
+class3bmif.con <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
+                      nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
+                      flatten.gammas =1, iter.max = 20000, group = factor(Race),
+                      constrain.rhos = T, constrain.gammas = T, subpop = (Male == 1),
+                      weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
+
+set.seed(99)
+class3bmif.unc <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
+                      nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
+                      flatten.gammas =1, iter.max = 20000, group = factor(Race),
+                      constrain.rhos = F, constrain.gammas = T, subpop = (Male == 1),
+                      weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
+compare.fit(class3bmif.con, class3bmif.unc) #yes there is invariance: ChiSq = 884.3144, df = 117, p < 0.001
+
+#the model without BMI included
+set.seed(87)
+class3f.con <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
+                   nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
+                   flatten.gammas =1, iter.max = 20000, group = factor(Race),
+                   constrain.rhos = T, constrain.gammas = T, subpop = (Male == 1),
+                   weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
+
+set.seed(99)
+class3f.unc <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
+                   nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
+                   flatten.gammas =1, iter.max = 20000, group = factor(Race),
+                   constrain.rhos = F, constrain.gammas = T, subpop = (Male == 1),
+                   weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
+compare.fit(class3f.con, class3f.unc) #yes there is invariance: ChiSq = 599.666, df = 72, p < 0.001
+
+####################################################################################
+
+#Males: 3 classes with BMI
+set.seed(87)
+class4bmim.con <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
+                      nclass = 4, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
+                      flatten.gammas =1, iter.max = 20000, group = factor(Race),
+                      constrain.rhos = T, constrain.gammas = T, subpop = (Male == 2),
+                      weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
+
+set.seed(99)
+class4bmim.unc <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
+                      nclass = 4, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
+                      flatten.gammas =1, iter.max = 20000, group = factor(Race),
+                      constrain.rhos = F, constrain.gammas = T, subpop = (Male == 2),
+                      weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
+compare.fit(class4bmim.con, class4bmim.unc) #yes there is invariance: ChiSq = 1027.175, df = 156, p < 0.001
+
+#the model without BMI included
+set.seed(87)
+class3m.con <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
+                   nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
+                   flatten.gammas =1, iter.max = 20000, group = factor(Race),
+                   constrain.rhos = T, constrain.gammas = T, subpop = (Male == 2),
+                   weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
+
+set.seed(99)
+class3m.unc <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh)~1,
+                   nclass = 3, data = lcaDat, tol = 1e-06, flatten.rhos = 1, 
+                   flatten.gammas =1, iter.max = 20000, group = factor(Race),
+                   constrain.rhos = F, constrain.gammas = T, subpop = (Male == 2),
+                   weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
+compare.fit(class3m.con, class3m.unc) #yes there is invariance: ChiSq = 495.2879, df = 72, p < 0.001
 
 
 
