@@ -451,3 +451,5 @@ fsInvarianceBMIgam(lcaDat, 3, 1, 3) #hispanic female: NO
 fsInvarianceBMIgam(lcaDat, 3, 2, 3) #hispanic male: NO, chisq = 11.77494, df = 6, p = 0.06718
 fsInvarianceBMIgam(lcaDat, 4, 1, 3) #other female: NO
 fsInvarianceBMIgam(lcaDat, 4, 2, 3) #other male: NO
+
+
