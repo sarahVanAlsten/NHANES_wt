@@ -320,6 +320,14 @@ wfp <- wf3$theta[(length(wf3$theta)-1):length(wf3$theta)] #.24 same, .02 more, .
 hmp <- hm3$theta[(length(hm3$theta)-1):length(hm3$theta)] #.43 same, .06 more, .52 less
 hfp <- hf3$theta[(length(hf3$theta)-1):length(hf3$theta)] #.24 same, .05 more, .71 less
 
+
+ses <- cbind(om3$se.gamma, of3$se.gamma, bm3$se.gamma, bf3$se.gamma, wm3$se.gamma, wf3$se.gamma, 
+		hm3$se.gamma, hf3$se.gamma)
+colnames(ses) <- c("om", "of", "bm", "bf", "wm", "wf", "hm", "hf")
+write.csv(allprev, "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\gammaStdErr.csv")
+
+
+
 library(magrittr)
 #get prevalence for third class by subtracting sum of other 2 from 100
 getThirdClass <- function(ls){
@@ -373,6 +381,27 @@ hmpI <- hm3$theta[length(hm3$theta)-2:length(hm3$theta)]
 hfpI <- hf3$theta[length(hf3$theta)-2:length(hf3$theta)] 
 bmpI <- bm3$theta[length(bm3$theta)-2:length(bm3$theta)]
 bfpI <- bf3$theta[length(bf3$theta)-2:length(bf3$theta)] 
+
+ompI <- t(as.data.frame(ompI))
+ofpI <- t(as.data.frame(ofpI))
+bmpI <- t(as.data.frame(bmpI))
+bfpI <- t(as.data.frame(bfpI))
+wmpI <- t(as.data.frame(wmpI))
+wfpI <- t(as.data.frame(wfpI))
+hmpI <- t(as.data.frame(hmpI))
+hfpI <- t(as.data.frame(hfpI))
+
+ompI <- ompI[ , order(colnames(ompI))]
+bmpI <- bmpI[ , order(colnames(bmpI))]
+hmpI <- hmpI[ , order(colnames(hmpI))]
+wmpI <- wmpI[ , order(colnames(wmpI))]
+ofpI <- ofpI[ , order(colnames(ofpI))]
+bfpI <- bfpI[ , order(colnames(bfpI))]
+hfpI <- hfpI[ , order(colnames(hfpI))]
+wfpI <- wfpI[ , order(colnames(wfpI))]
+
+allRho <- rbind(ompI, bmpI, hmpI, wmpI, ofpI, bfpI, hfpI, wfpI)
+write.csv(allRho, "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\raceSexClassRho.csv")
 
 
 ##########################################

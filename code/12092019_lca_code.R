@@ -4,7 +4,7 @@
 # Purpose: Code to run Latent Class Causal Analysis   #
 # Data Used: NHANES 07, 09, 11                        #
 # Packages Used: lcca                                 #
-# Last Update: December 09, 2019                      #
+# Last Update: December 10, 2019                      #
 #######################################################
 #run this in R.3.0.0!
 #open up the needed library
