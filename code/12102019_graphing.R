@@ -266,7 +266,9 @@ doAbtWt.facetRace <- rho.full %>%
         legend.text = element_text(size = 8),
         legend.title = element_text(size = 8))+
   geom_errorbar(aes(ymin = IEP - 1.96*SE, ymax = IEP + 1.96*SE), width = .2, position = position_dodge(.9))+
-  xlab("Class") + ylab("Item Endorsement Probability")+ labs(fill = "Response")+
+  xlab("Class") + ylab("Item Endorsement Probability")+ 
+  labs(fill = "Response", 
+       caption = "Error Bars Represent 95% Confidence Interval. Standard Errors Weighted for Survey Design.")+
   ggtitle("What Are You Doing About Your Weight?")
 
 
@@ -310,9 +312,10 @@ ConsiderWt.facetRace <-
         legend.title = element_text(size = 8))+
   geom_errorbar(aes(ymin = IEP - 1.96*SE, ymax = IEP + 1.96*SE), width = .2,
                 position = position_dodge(.75))+
-  xlab("Class") + ylab("Item Endorsement Probability")+ labs(fill = "Response")+
+  xlab("Class") + ylab("Item Endorsement Probability")+ 
+  labs(fill = "Response", 
+       caption = "Error Bars Represent 95% Confidence Interval. Standard Errors Weighted for Survey Design.")+
   ggtitle("How Do You Consider Your Weight?")
-
 
 considerWt.facetClass <- rho.full %>%
   filter(varString == "Consider Weight") %>%
@@ -331,6 +334,55 @@ considerWt.facetClass <- rho.full %>%
   labs(fill = "Response", 
        caption = "Error Bars Represent 95% Confidence Interval. Standard Errors Weighted for Survey Design.")+
   ggtitle("How Do Your Consider Your Weight?")
+
+ggsave(plot = considerWt.facetClass, device = "png",
+       filename = "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\images\\considerWt.facetClass.png")
+ggsave(plot = ConsiderWt.facetRace, device = "png",
+       filename = "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\images\\considerWt.facetRace.png")
+
+
+####################################################################################
+#what would you like to weigh?
+
+#likeWeigh.facetRace <- 
+  rho.full %>%
+  filter(varString == "Like to Weigh") %>%
+  mutate(dispClass = str_remove_all(class, pattern = "Class")) %>%
+  mutate(dispClass = str_remove_all(dispClass, pattern = "Weigh")) %>%
+  mutate(maleFact = ifelse(male, "Male", "Female")) %>%
+  ggplot(aes(x = dispClass, y = IEP, group = response, fill = response))+
+  geom_bar(stat = "identity", position = position_dodge(.75)) +
+  theme_minimal()+
+  facet_grid(maleFact~race) +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 8),
+        legend.title = element_text(size = 8))+
+  geom_errorbar(aes(ymin = IEP - 1.96*SE, ymax = IEP + 1.96*SE), width = .2,
+                position = position_dodge(.75))+
+  xlab("Class") + ylab("Item Endorsement Probability")+ 
+  labs(fill = "Response", 
+       caption = "Error Bars Represent 95% Confidence Interval. Standard Errors Weighted for Survey Design.")+
+  ggtitle("What Would You Like to Weigh?")
+
+
+#considerWt.facetClass <- 
+  rho.full %>%
+  filter(varString == "Like to Weigh") %>%
+  mutate(maleFact = ifelse(male, "Male", "Female")) %>%
+  ggplot(aes(x = race, y = IEP, group = response, fill = response))+
+  geom_bar(stat = "identity", position = position_dodge(.9)) +
+  theme_minimal()+
+  facet_grid(maleFact~class) +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 8),
+        legend.title = element_text(size = 8),
+        plot.caption = element_text(hjust = .5))+
+  geom_errorbar(aes(ymin = IEP - 1.96*SE, ymax = IEP + 1.96*SE), width = .25, 
+                position = position_dodge(.9))+
+  xlab("Race") + ylab("Item Endorsement Probability")+
+  labs(fill = "Response", 
+       caption = "Error Bars Represent 95% Confidence Interval. Standard Errors Weighted for Survey Design.")+
+  ggtitle("What Would You Like To Weigh?")
 
 ggsave(plot = considerWt.facetClass, device = "png",
        filename = "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\images\\considerWt.facetClass.png")
