@@ -112,18 +112,35 @@ ggsave(plot = gamma3class.graph, device = "png", dpi = 400,
 
 ggsave(plot = gamma3class.1, device = "png", dpi = 400,
        filename = "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\images\\gamma3classNoFacet.png")
+###########################################################################################
+gamma.long <- gamma.full %>%
+  pivot_longer(cols = c("Weigh.Same.Class", "Weigh.More.Class", "Weigh.Less.Class"),
+               names_to = "Class", values_to = "Prevalence") %>%
+  pivot_longer(cols = c("Weigh.Same.Class.SE", "Weigh.More.Class.SE", "Weigh.Less.Class.SE"),
+               names_to = "SEtype", values_to = "SE")%>%
+  mutate(maleFact = ifelse(Male == 1, "Male", "Female")) %>%
+  rowwise() %>%
+  filter(grepl(pattern = as.character(Class), x = as.character(SEtype))) %>%
+  ungroup() %>%
+  mutate(lowerCI = as.numeric(as.character(Prevalence)) - 1.96*as.numeric(as.character(SE)),
+         upperCI = as.numeric(as.character(Prevalence)) + 1.96*as.numeric(as.character(SE))) %>%
+  mutate(`Class Prevalence (95% CI)` = paste(sprintf("%.4f", as.numeric(as.character(Prevalence))),
+                         " (", sprintf("%.4f", as.numeric(as.character(lowerCI))),
+                         " - ", sprintf("%.4f",as.numeric(as.character(upperCI))), ")", sep = ""))
 
-
-gamma %>%
+gamma.long %>%
   mutate(" " = Race)%>%
-  select(7, 2:4) %>%
+  select(12, 2:4, 11) %>%
+  arrange(desc(Male)) %>%
+  select(-c(Male, Race)) %>%
   kable(format = "html", digits = 4,
         caption = "Class Prevalences") %>%
-  kableExtra::group_rows(group_label = "Male", start_row = 1, end_row = 4)%>%
-  kableExtra::group_rows(group_label = "Female", start_row = 5, end_row = 8)%>%
-  kable_styling("striped")
+  kableExtra::group_rows(group_label = "Male", start_row = 1, end_row = 12)%>%
+  kableExtra::group_rows(group_label = "Female", start_row = 13, end_row = 24)%>%
+  kable_styling("striped") %>%
+  add_header_above(c(" " = 1, "Group 1" = 2, "Group 2" = 2, "Group 3" = 2))
 
-
+#######################################################################################
 #vars in order are: doingAbtWt, ConsiderWt, LikeToWeigh
 #FOR DOING ABOUT WEIGHT
 #1: lost weight intentionally
