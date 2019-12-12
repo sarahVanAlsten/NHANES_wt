@@ -344,7 +344,7 @@ ggsave(plot = ConsiderWt.facetRace, device = "png",
 ####################################################################################
 #what would you like to weigh?
 
-#likeWeigh.facetRace <- 
+likeWeigh.facetRace <- 
   rho.full %>%
   filter(varString == "Like to Weigh") %>%
   mutate(dispClass = str_remove_all(class, pattern = "Class")) %>%
@@ -365,7 +365,7 @@ ggsave(plot = ConsiderWt.facetRace, device = "png",
   ggtitle("What Would You Like to Weigh?")
 
 
-#considerWt.facetClass <- 
+likeWeigh.facetClass <- 
   rho.full %>%
   filter(varString == "Like to Weigh") %>%
   mutate(maleFact = ifelse(male, "Male", "Female")) %>%
@@ -384,7 +384,7 @@ ggsave(plot = ConsiderWt.facetRace, device = "png",
        caption = "Error Bars Represent 95% Confidence Interval. Standard Errors Weighted for Survey Design.")+
   ggtitle("What Would You Like To Weigh?")
 
-ggsave(plot = considerWt.facetClass, device = "png",
-       filename = "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\images\\considerWt.facetClass.png")
-ggsave(plot = ConsiderWt.facetRace, device = "png",
-       filename = "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\images\\considerWt.facetRace.png")
+ggsave(plot = likeWeigh.facetClass, device = "png",
+       filename = "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\images\\likeWeigh.facetClass.png")
+ggsave(plot = likeWeigh.facetRace, device = "png",
+       filename = "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\images\\likeWeigh.facetRace.png")
