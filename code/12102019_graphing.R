@@ -165,3 +165,99 @@ rho2 <- rho2 %>%
                                          ifelse(respLev == 2, "Like to Weigh Same", "Like to Weigh More")))))
 
 #read in rho standard errors
+rho.se <- read.csv("C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\stderrRho.csv")
+rho.se$X <- as.character(rho.se$X)
+
+#get last two characters which will be race/sex
+substrRight <- function(x, n){
+  substr(x, nchar(x)-n+1, nchar(x))
+}
+rho.se$X2 <- substrRight(rho.se$X, 2)
+
+#add columns for race and sex
+rho.se <- rho.se %>%
+  mutate(race = ifelse(grepl(pattern = "o", x = X2), "Other",
+                       ifelse(grepl(pattern = "b", x = X2), "Black",
+                              ifelse(grepl(pattern = "w", x = X2), "White",
+                                     ifelse(grepl(pattern = "hm", x = X2) | grepl(pattern = "hf", x = X2),
+                                            "Hispanic", "Other"))))) %>%
+  mutate(male = ifelse(grepl(pattern = "f", x = X2), 0, 1))
+
+
+#gather to order in same way as plain rhos: one col for var, one for the se
+rho.se <- rho.se %>%
+  pivot_longer(cols = 2:16, names_to = "variable", values_to = "SE")
+
+#get rid of X2, not needed anymore
+rho.se <- rho.se %>%
+  select(-X2)
+
+#use substring command to extract values for var, response level, and class
+rho.se <- rho.se %>%
+  mutate(respLev = substr(variable, 2, 2),
+         varRespondedTo = substr(X, 1, nchar(X)-2),
+         class = substr(variable, 10, 10))
+
+
+rho.se <- rho.se %>%
+  mutate(varString = ifelse(grepl(x = varRespondedTo, pattern = "doing"), "Doing About Weight",
+                            ifelse(grepl(x = varRespondedTo, "Consider"), "Consider Weight", "Like to Weigh")),
+         class = ifelse(class == 1, "Weigh Same Class", ifelse(class == 2, "Weigh More Class",
+                                                               "Weigh Less Class")))
+
+
+#now add labels for each of responses per given variable
+rho.se <- rho.se %>%
+  mutate(response = ifelse(varString == "Doing About Weight",
+                           ifelse(respLev == 1, "Lost Weight Intentionally",
+                                  ifelse(respLev == 2, "Lost Weight Unintentionally",
+                                         ifelse(respLev == 3, "Tried to Lose Weight",
+                                                ifelse(respLev == 4, "Tried to Not Gain Weight",
+                                                       "Not Doing Anything About Weight")))),
+                           ifelse(varString == "Consider Weight",
+                                  ifelse(respLev == 1, "Underweight",
+                                         ifelse(respLev == 2, "About Right", "Overweight")),
+                                  ifelse(respLev == 1, "Like to Weigh Less",
+                                         ifelse(respLev == 2, "Like to Weigh Same", "Like to Weigh More")))))
+
+#finally, for each of the categories, one level was left out as the reference.
+#need to readd that level back in and get the IEP for that category
+lastRes <- rho2 %>%
+  group_by(race, male, varString, class) %>%
+  summarise(IEP= 1 -sum(IEP, na.rm = T))
+
+#now, add the column for response to say what the omitted category is
+#for consider wt, that category is "overweight"
+#for doing abt weight, that category is "not doing anything"
+#for like to weigh, that category, is "weigh more"
+lastRes <- lastRes %>%
+  mutate(response = ifelse(varString == "Consider Weight", "Overweight",
+                           ifelse(varString == "Doing About Weight", "Not Doing Anything About Weight",
+                                  "Like to Weigh More")))
+
+lastRes <- lastRes %>%
+  ungroup()
+
+rho3 <- rho2 %>%
+  select(-c(X, RhoVar, variable, respLev))
+
+rho3 <- rbind(rho3, lastRes)
+
+#now want to merge the standard errors with the estimates, doing so by matching
+#the class, varString, and response
+rho.full <- rho3 %>%
+  right_join(rho.se, by = c("class", "response", "varString", "race", "male"))
+
+#now make a graph that shows item endorsement prob for each item/response by race/sex/class,
+#including the standard erros
+#to make easier, will just be doing the individual variables separtely
+#first: what are you doing about your weight?
+
+
+
+rho.full %>%
+  filter(varString == "Doing About Weight") %>%
+  ggplot(aes(x = class, y = IEP, group = response, fill = response))+
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_minimal()+
+  facet_grid(male~race)
