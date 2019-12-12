@@ -324,7 +324,7 @@ hfp <- hf3$theta[(length(hf3$theta)-1):length(hf3$theta)] #.24 same, .05 more, .
 ses <- cbind(om3$se.gamma, of3$se.gamma, bm3$se.gamma, bf3$se.gamma, wm3$se.gamma, wf3$se.gamma, 
 		hm3$se.gamma, hf3$se.gamma)
 colnames(ses) <- c("om", "of", "bm", "bf", "wm", "wf", "hm", "hf")
-write.csv(allprev, "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\gammaStdErr.csv")
+write.csv(ses, "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\gammaStdErr.csv")
 
 
 
@@ -403,6 +403,27 @@ wfpI <- wfpI[ , order(colnames(wfpI))]
 allRho <- rbind(ompI, bmpI, hmpI, wmpI, ofpI, bfpI, hfpI, wfpI)
 write.csv(allRho, "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\raceSexClassRho.csv")
 
+omser <- as.data.frame(om3$se.rho)
+ofser <- as.data.frame(om3$se.rho)
+bmser <- as.data.frame(om3$se.rho)
+bfser <- as.data.frame(om3$se.rho)
+wmser <- as.data.frame(om3$se.rho)
+wfser <- as.data.frame(om3$se.rho)
+hmser <- as.data.frame(om3$se.rho)
+hfser <- as.data.frame(om3$se.rho)
+
+#bind together in one data frame
+serho <- rbind(omser, ofser, bmser, bfser, wmser, wfser, hmser, hfser)
+dim(serho)
+rownames(serho) <- gsub(x = rownames(serho), pattern = "1", replacement = "of")
+rownames(serho) <- gsub(x = rownames(serho), pattern = "2", replacement = "bm")
+rownames(serho) <- gsub(x = rownames(serho), pattern = "3", replacement = "bf")
+rownames(serho) <- gsub(x = rownames(serho), pattern = "4", replacement = "wm")
+rownames(serho) <- gsub(x = rownames(serho), pattern = "5", replacement = "wf")
+rownames(serho) <- gsub(x = rownames(serho), pattern = "6", replacement = "hm")
+rownames(serho) <- gsub(x = rownames(serho), pattern = "7", replacement = "hf")
+
+write.csv(serho, "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\stderrRho.csv")
 
 ##########################################
 #repeat for BMI

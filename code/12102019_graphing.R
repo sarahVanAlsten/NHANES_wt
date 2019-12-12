@@ -133,3 +133,35 @@ gamma %>%
 #5: all others (not trying to do anything)
 #These are structured as: Var, ResponseLevel, Class, FlatteningConstant
 
+#pivot table so in format rhovalue : variable
+rho2 <- rho %>%
+  pivot_longer(cols = 2:25, names_to = "RhoVar", values_to = "IEP")
+
+#use substring command to extract values for var, response level, and class
+rho2 <- rho2 %>%
+  mutate(variable = substr(RhoVar, 5, 5),
+         respLev = substr(RhoVar, 7, 7),
+         class = substr(RhoVar, 9, 9))
+
+rho2 <- rho2 %>%
+  mutate(varString = ifelse(variable == 1, "Doing About Weight",
+                            ifelse(variable == 2, "Consider Weight", "Like to Weigh")),
+         class = ifelse(class == 1, "Weigh Same Class", ifelse(class == 2, "Weigh More Class",
+                                                               "Weigh Less Class")))
+
+
+#now add labels for each of responses per given variable
+rho2 <- rho2 %>%
+  mutate(response = ifelse(varString == "Doing About Weight",
+                           ifelse(respLev == 1, "Lost Weight Intentionally",
+                                  ifelse(respLev == 2, "Lost Weight Unintentionally",
+                                         ifelse(respLev == 3, "Tried to Lose Weight",
+                                                ifelse(respLev == 4, "Tried to Not Gain Weight",
+                                                       "Not Doing Anything About Weight")))),
+                           ifelse(varString == "Consider Weight",
+                                  ifelse(respLev == 1, "Underweight",
+                                         ifelse(respLev == 2, "About Right", "Overweight")),
+                                  ifelse(respLev == 1, "Like to Weigh Less",
+                                         ifelse(respLev == 2, "Like to Weigh Same", "Like to Weigh More")))))
+
+#read in rho standard errors
