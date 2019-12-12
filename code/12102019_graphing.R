@@ -253,11 +253,18 @@ rho.full <- rho3 %>%
 #to make easier, will just be doing the individual variables separtely
 #first: what are you doing about your weight?
 
-
-
 rho.full %>%
   filter(varString == "Doing About Weight") %>%
-  ggplot(aes(x = class, y = IEP, group = response, fill = response))+
-  geom_bar(stat = "identity", position = "dodge") +
+  mutate(dispClass = str_remove_all(class, pattern = "Class")) %>%
+  mutate(dispClass = str_remove_all(dispClass, pattern = "Weigh")) %>%
+  mutate(maleFact = ifelse(male, "Male", "Female")) %>%
+  ggplot(aes(x = dispClass, y = IEP, group = response, fill = response))+
+  geom_bar(stat = "identity", position = position_dodge(.9)) +
   theme_minimal()+
-  facet_grid(male~race)
+  facet_grid(maleFact~race) +
+  theme(legend.position = "bottom",
+        legend.text = element_text(size = 8),
+        legend.title = element_text(size = 8))+
+  geom_errorbar(aes(ymin = IEP - SE, ymax = IEP + SE), width = .2, position = position_dodge(.9))+
+  xlab("Class") + ylab("Item Endorsement Probability")+ labs(fill = "Response")+
+  ggtitle("What Are You Doing About Your Weight?")
