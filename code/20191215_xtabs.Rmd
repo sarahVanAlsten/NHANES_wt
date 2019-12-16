@@ -1,0 +1,63 @@
+---
+title: "xtab"
+author: "Sarah Van Alsten"
+date: "12/16/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+nhanes.2007.to.2012 <- read.csv("C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\12092019no2013.csv")
+#Cross tabs of each of the weight behavior variables, separated out by sex
+male <- nhanes.2007.to.2012[nhanes.2007.to.2012$Male == 1,]
+female <- nhanes.2007.to.2012[nhanes.2007.to.2012$Male == 0,]
+```
+
+
+```{r, echo=FALSE, include= FALSE}
+allXtabs <- function(data){
+  v1 <- data$LikeToWeigh
+  v2 <- data$ConsiderWt
+  v3 <- data$doingAbtWt
+  listVec <- list(v1, v2, v3)
+  nameVec <- c("likeToWeigh", "considerWt", "weightAction")
+  for (i in 1:(length(listVec)-1)){
+    for (j in (i+1):length(listVec)){
+      if (i==j) break
+      print(descr::CrossTable(x = listVec[[i]], y = listVec[[j]],
+                              format = "SAS", chisq = T, 
+                              dnn = c(nameVec[i], nameVec[j]),
+                              missing.include = F, prop.chisq = F))
+    }
+  }
+}
+
+
+```
+
+#Weight Action Coding Scheme
+1 = lost weight intentionally
+2 = lost weight unintentionally
+3 = tried to lose weight (but didn't)
+4 = tried to not gain weight
+5 = didn't do anything about weight
+
+#Consider Weight Coding
+-1 = Weigh too little
+0 = About Right
+1 = Weigh too much
+
+#Like to Weigh Coding
+-1 = Less
+0 = Same
+1 = More
+
+##FEMALES
+```{r}
+allXtabs(female)
+```
+
+##MALES
+```{r}
+allXtabs(male)
+```
+

@@ -65,7 +65,7 @@ gamma3class.1 <- gamma.full %>%
   ggtitle("Class Prevalence (Gamma) By Race and Sex")+
   labs(y = "Prevalence within Group",
        caption = "Error bars represent SEM per design-based analysis")+
-  theme(plot.caption = element_text(hjust = 0))
+  theme(plot.caption = element_text(hjust = 0)) 
 
 gamma %>%
   pivot_longer(cols = c("Weigh.Same.Class", "Weigh.More.Class", "Weigh.Less.Class"),
@@ -137,8 +137,9 @@ gamma.long %>%
         caption = "Class Prevalences") %>%
   kableExtra::group_rows(group_label = "Male", start_row = 1, end_row = 12)%>%
   kableExtra::group_rows(group_label = "Female", start_row = 13, end_row = 24)%>%
-  kable_styling("striped") %>%
-  add_header_above(c(" " = 1, "Group 1" = 2, "Group 2" = 2, "Group 3" = 2))
+  kable_styling("striped")
+#%>%
+ # add_header_above(c(" " = 1, "Group 1" = 2, "Group 2" = 2, "Group 3" = 2))
 
 #######################################################################################
 #vars in order are: doingAbtWt, ConsiderWt, LikeToWeigh
@@ -270,6 +271,16 @@ rho.full <- rho3 %>%
 #to make easier, will just be doing the individual variables separtely
 #first: what are you doing about your weight?
 ###########################################################################################
+ddSmallLegend <- function(myPlot, pointSize = 0.7, textSize = 5, spaceLegend = 0.1) {
+  myPlot +
+    guides(fill = guide_legend(override.aes = list(size = pointSize)),
+           color = guide_legend(override.aes = list(size = pointSize))) +
+    theme(legend.title = element_text(size = textSize), 
+          legend.text  = element_text(size = textSize),
+          legend.key.size = unit(spaceLegend, "lines"))
+}
+
+#####################################################
 doAbtWt.facetRace <- rho.full %>%
   filter(varString == "Doing About Weight") %>%
   mutate(dispClass = str_remove_all(class, pattern = "Class")) %>%
@@ -286,7 +297,10 @@ doAbtWt.facetRace <- rho.full %>%
   xlab("Class") + ylab("Item Endorsement Probability")+ 
   labs(fill = "Response", 
        caption = "Error Bars Represent 95% Confidence Interval. Standard Errors Weighted for Survey Design.")+
-  ggtitle("What Are You Doing About Your Weight?")
+  ggtitle("What Are You Doing About Your Weight?") +
+  guides(fill = guide_legend(override.aes = list(size = 0.2)))
+
+doAbtWt.facetRace <- ddSmallLegend(doAbtWt.facetRace)
 
 
 doAbtWt.facetClass <- rho.full %>%
@@ -305,7 +319,10 @@ doAbtWt.facetClass <- rho.full %>%
   xlab("Race") + ylab("Item Endorsement Probability")+
   labs(fill = "Response", 
        caption = "Error Bars Represent 95% Confidence Interval. Standard Errors Weighted for Survey Design.")+
-  ggtitle("What Are You Doing About Your Weight?")
+  ggtitle("What Are You Doing About Your Weight?")+
+  guides(fill = guide_legend(override.aes = list(size = 0.2)))
+
+doAbtWt.facetClass<- ddSmallLegend(doAbtWt.facetClass)
 
 doAbtWt.facetSex <- 
   rho.full %>%
@@ -324,7 +341,10 @@ doAbtWt.facetSex <-
   xlab("Sex") + ylab("Item Endorsement Probability")+
   labs(fill = "Response", 
        caption = "Error Bars Represent 95% Confidence Interval. Standard Errors Weighted for Survey Design.")+
-  ggtitle("What Are You Doing About Your Weight?")
+  ggtitle("What Are You Doing About Your Weight?")+
+  guides(fill = guide_legend(override.aes = list(size = 0.2)))
+
+doAbtWt.facetSex <- ddSmallLegend(doAbtWt.facetSex)
 
 
 ggsave(plot = doAbtWt.facetSex, device = "png",
