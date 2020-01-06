@@ -891,7 +891,9 @@ lcaSub <- nhanes.2007.to.2012 %>%
          lastYrSkipMeal, lastYrJoinProgram, lastYrOthRx,
          lastYrMoreH20, lastYrLowCarb, lastYrRestartSmoke,
          lastYrOther, RIDAGEYR, Income, bingeDrk, doingAbtWt,
-         WTMEC2YR, WTMEC6YR, WTMEC4YR, SDMVPSU, SDMVSTRA)
+         WTMEC2YR, WTMEC6YR, WTMEC4YR, SDMVPSU, SDMVSTRA,
+         alcohol, orient, wsexw, mjuse4, newwsw, maritalstatus,
+         maritalstatus2, age4, edu)
 
 #for 3 categories: add1, then follow up with this add1 again
 add1 <- function(x){
