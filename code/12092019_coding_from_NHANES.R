@@ -797,22 +797,42 @@ rm(fem0911)
 rm(male07)
 rm(male0911)
 #########################################################################
+#marijuana use
+dat <- dat %>%
+  mutate(mjever = ifelse(DUQ200 == 1, 1,
+                         ifelse(DUQ200 == 2, 0, NA))) %>%
+  mutate(momjuse = ifelse(DUQ211 == 1, 1,
+                          ifelse(DUQ211 == 2 | mjever == 0, 0, NA))) %>%
+  mutate(mjuse4 = ifelse(DUQ217 == 5, 3,
+                         ifelse(DUQ217 %in% c(1,2,3,4), 2,
+                                ifelse(mjever ==1 & momjuse != . & !DUQ217 %in% c(7,9), 1,
+                                       ifelse(mjever == 0, 0, NA))))) %>%
+  mutate(dailymjuse = ifelse(mjuse4 == 3, 1,
+                             ifelse(mjuse4 %in% c(0,1,2), 0, NA)))
 
+#illicit drugs
+dat <- dat %>%
+  mutate(illdruguse = ifelse(DUQ240 == 2, 0,
+                             ifelse(DUQ240 == 1, 1, NA)))
 
-
-
-
+#alcohol
+dat <- dat %>%
+  mutate(everdrink12 = ifelse(ALQ101 == 1 | ALQ110 == 1, 1,
+                              ifelse(ALQ101 == 2 & ALQ110 == 2, 0, NA))) %>%
+  mutate(drink12mo = ifelse(ALQ120Q == 0 | everdrink12 == 0, 0,
+                            ifelse(ALQ120U %in% c(1,2,3), 1, NA))) %>%
+  mutate(drinking = ifelse(ALQ141U == 1, ALQ141Q * 4.3,
+                           ifelse(ALQ141U ==2, ALQ141Q,
+                                  ifelse(ALQ141U == 3, ALQ141Q/12, NA)))) %>%
+  mutate(alcohol = ifelse(drinking <5 & drinking >=1, 2,
+                          ifelse(drinking >=5, 3,
+                                 ifelse(drink12mo == 1, 1,
+                                        ifelse(drinking < 1 | !is.na(everdrink12), 0, NA)))))
 
 
 ##########################################################################
 #create a survey sample design by the primary sampling unit, the stratum, and the revised cycle weight
 #(for combining surveys from 5, 4, 3, 2, and 1) cycles
-
-dclus4 <-survey::svydesign(id=~SDMVPSU, 
-                           strata = ~SDMVSTRA, 
-                           weights=~WTMEC8YR, 
-                           nest = TRUE, 
-                           data=dat)
 
 dclus3 <-survey::svydesign(id=~SDMVPSU, 
                            strata = ~SDMVSTRA, 
@@ -820,11 +840,6 @@ dclus3 <-survey::svydesign(id=~SDMVPSU,
                            nest = TRUE, 
                            data=dat)
 
-dclus2 <-survey::svydesign(id=~SDMVPSU, 
-                           strata = ~SDMVSTRA, 
-                           weights=~WTMEC4YR, 
-                           nest = TRUE, 
-                           data=dat)
 
 nhanes.2007.to.2012 <- dat[!dat$cycle %in% "2013-2014",]
 ########################################################
