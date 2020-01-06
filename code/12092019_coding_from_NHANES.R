@@ -150,9 +150,42 @@ rm(bmx09)
 rm(bmx11)
 rm(bmx13)
 rm(bmx07)
+
+#################################################################################################
+#Sexual Behavior 
+sxq09 <- nhanes_load_data("sxq", "2009-2010", demographics = F)
+sxq11 <- nhanes_load_data("sxq", "2011-2012", demographics = F)
+sxq13 <- nhanes_load_data("sxq", "2013-2014", demographics = F)
+sxq07 <- nhanes_load_data("sxq", "2007-2008", demographics = F)
+
+#put all the data into one frame
+sxq <- plyr::rbind.fill(sxq09, sxq11, sxq13, sxq07)
+
+#clean up workspce
+rm(sxq09)
+rm(sxq11)
+rm(sxq13)
+rm(sxq07)
+############################################################################
+#General Health Status
+hsq09 <- nhanes_load_data("hsq", "2009-2010", demographics = F)
+hsq11 <- nhanes_load_data("hsq", "2011-2012", demographics = F)
+hsq13 <- nhanes_load_data("hsq", "2013-2014", demographics = F)
+hsq07 <- nhanes_load_data("hsq", "2007-2008", demographics = F)
+
+#put all the data into one frame
+hsq <- plyr::rbind.fill(hsq09, hsq11, hsq13, hsq07)
+
+#clean up workspce
+rm(hsq09)
+rm(hsq11)
+rm(hsq13)
+rm(hsq07)
 ###############################################################################
 #Merge data by respondent ID to get one data frame
 dat <- merge(
+  merge(
+  merge(
   merge(
     merge(
       merge(
@@ -165,7 +198,9 @@ dat <- merge(
         dpq, by = "SEQN"),
       bmx, by = "SEQN"),
     alq, by = "SEQN"),
-  acq, by = "SEQN")
+  acq, by = "SEQN"),
+hsq, by = "SEQN"),
+sxq, by = "SEQN")
 
 #get rid of unnecessary repeated columns
 dat <- dat[,!names(dat)%in% c("file_name.x", "file_name.y", "end_year.y", "end_year.x", "begin_year.x", 
@@ -638,9 +673,138 @@ dat <-
   mutate(smkStat = ifelse(nowSmoke == 1, 2, #current
                           ifelse(nowSmoke == 0 & smoke100 == 0, 0, #never
                                  ifelse(nowSmoke == 0 & smoke100 == 1, 1, NA)))) #former
+########################################################################
+#Age category, marital status, and education
+dat <-
+  dat %>%
+  mutate(age4 = ifelse(RIDAGEYR > 20 & RIDAGEYR <= 29, 1,
+                       ifelse(RIDAGEYR > 29 & RIDAGEYR <= 39, 2,
+                              ifelse(RIDAGEYR > 39 & RIDAGEYR <= 49, 3,
+                                     ifelse(RIDAGEYR > 49 & RIDAGEYR <= 59, 4, NA)))))
+#NOTE: I changed this so that all people who were out of age range for the sexual orientation questions
+#were coded 2;
+dat <-
+  dat %>%
+  mutate(age = ifelse(age4 %in% c(1,2), 0,
+                      ifelse(age4 %in% c(3,4), 1, 2)))
 
+dat <-
+  dat %>%
+  mutate(maritalstatus = ifelse(DMDMARTL == 1, 0,
+                                ifelse(DMDMARTL == 5, 1,
+                                       ifelse(DMDMARTL == 6, 2,
+                                              ifelse(DMDMARTL %in% c(2,3,4), 3, NA))))) %>%
+  mutate(maritalstatus2 = ifelse(maritalstatus %in% c(0,1), 0,
+                                 maritalstatus - 2))
+dat <-
+  dat %>%
+  mutate(edu = ifelse(DMDEDUC2 %in% c(1,2), 0,
+                      ifelse(DMDEDUC2 == 3, 1,
+                             ifelse(DMDEDUC2 %in% c(4,5), 2, NA))))
 
+#######################################################################
+#Sexual Orientation/ Sexual Behavior
+#First, make a separte female and male data set to make it easier to work with
+fem <- dat %>%
+  filter(Male == 0)
+
+male <- dat %>%
+  filter(Male == 1)
+
+#questions were asked differently in 07-08 vs 09-10 and 11-12:
+#again separate out to make it easier with the ifelse statements
+fem07 <- fem %>%
+  filter(cycle.x == "2007-2008")
+fem0911 <- fem %>%
+  filter(!cycle.x == "2007-2008")
+male07 <- male %>%
+  filter(cycle.x == "2007-2008")
+male0911 <- male %>%
+  filter(!cycle.x == "2007-2008")
+
+#for female 09-11: follow julia's code
+#never had any sex: vaginal, anal, oral M or W
+fem0911 <- fem0911 %>%
+  mutate(neversex = ifelse(SXQ700 != 1 & SXQ703 !=1 & SXQ706 !=1 & SXQ709 != 1, 1, 0))
+
+fem0911 <- fem0911 %>%
+  mutate(hetero = ifelse(SXQ294 == 1, 1,
+                         ifelse(SXQ294 %in% c(2,3,4,5,9), 0, NA))) %>%
+  mutate(orient = ifelse(hetero == 1, 1, #hetero
+                         ifelse(SXQ294 %in% c(2,3), 2, #lesbian/gay
+                                ifelse(SXQ294 == 4, 3, #bisexual
+                                       ifelse(SXQ294 %in% c(5,9), 4, NA)))))%>% #something else
+  mutate(wsexw = ifelse(SXQ709 == 1, 1, #had sex with women
+                        ifelse(SXQ709 == 2, 0, NA))) %>% #didn't have sex with women
+  mutate(newwsw = ifelse(hetero == 1 | wsexw == 0, 0, #hetero or no women sex
+                         ifelse(orient %in% c(2,3) | wsexw == 1, 1, NA))) #self labeled lesbian/gay/bi or sex with w
+
+fem07 <- fem07 %>%
+  mutate(hetero = ifelse(SXQ294 == 1, 1,
+                         ifelse(SXQ294 %in% c(2,3,4,5,9), 0, NA))) %>%
+  mutate(orient = ifelse(hetero == 1, 1, #hetero
+                         ifelse(SXQ294 %in% c(2,3), 2, #lesbian/gay
+                                ifelse(SXQ294 == 4, 3, #bisexual
+                                       ifelse(SXQ294 %in% c(5,9), 4, NA)))))%>% #something else
+  mutate(wsexw = ifelse(SXQ130 == 0, 0, #zero female partners
+                        ifelse(SXQ130 > 0 & SXQ130 < 777, 1, NA))) %>%
+  mutate(newwsw = ifelse(hetero == 1 | wsexw == 0, 0, #hetero or no women sex
+                         ifelse(orient %in% c(2,3) | wsexw == 1, 1, NA)))%>% #self labeled lesbian/gay/bi or sex with w
+  mutate(neversex = ifelse(SXQ021 == 2, 1, 0))
+
+#put the two back together
+fem <- rbind(fem07, fem0911)
+
+#males
+male0911 <- male0911 %>%
+  mutate(neversex = ifelse(SXQ800 != 1 & SXQ803 !=1 & SXQ806 !=1 & SXQ809 != 1, 1, 0))
+
+male07 <- male07 %>%
+  mutate(hetero = ifelse(SXQ292 == 1, 1,
+                         ifelse(SXQ292 %in% c(2,3,4,5,9), 0, NA))) %>%
+  mutate(orient = ifelse(hetero == 1, 1, #hetero
+                         ifelse(SXQ294 %in% c(2,3), 2, #lesbian/gay
+                                ifelse(SXQ294 == 4, 3, #bisexual
+                                       ifelse(SXQ294 %in% c(5,9), 4, NA)))))%>% #something else
+  mutate(wsexw = ifelse(SXQ410 == 0, 0, #zero male partners
+                        ifelse(SXQ410 > 0 & SXQ410 < 777, 1, NA))) %>% #here it's really msexm but that would mess up
+  #when putting the columns back together
+  mutate(newwsw = ifelse(hetero == 1 | wsexw == 0, 0, #hetero or no women sex
+                         ifelse(orient %in% c(2,3) | wsexw == 1, 1, NA)))%>% #self labeled lesbian/gay/bi or sex with m
+  mutate(neversex = ifelse(SXQ021 == 2, 1, 0))
+
+male0911 <- male0911 %>%
+  mutate(hetero = ifelse(SXQ292 == 1, 1,
+                         ifelse(SXQ292 %in% c(2,3,4,5,9), 0, NA))) %>%
+  mutate(orient = ifelse(hetero == 1, 1, #hetero
+                         ifelse(SXQ294 %in% c(2,3), 2, #lesbian/gay
+                                ifelse(SXQ294 == 4, 3, #bisexual
+                                       ifelse(SXQ294 %in% c(5,9), 4, NA)))))%>% #something else
+  mutate(wsexw = ifelse(SXQ410 == 0, 0, #had sex with men
+                        ifelse(SXQ410 < 7777 & SXQ410 > 0, 1, NA))) %>% #didn't have sex with men
+  mutate(newwsw = ifelse(hetero == 1 | wsexw == 0, 0, #hetero or no women sex
+                         ifelse(orient %in% c(2,3) | wsexw == 1, 1, NA))) #self labeled lesbian/gay/bi or sex with m
+
+#put back together
+male <- rbind(male07, male0911)
+
+#now put back together overall
+dat <- rbind(male, fem)
+rm(male)
+rm(fem)
+rm(fem07)
+rm(fem0911)
+rm(male07)
+rm(male0911)
 #########################################################################
+
+
+
+
+
+
+
+##########################################################################
 #create a survey sample design by the primary sampling unit, the stratum, and the revised cycle weight
 #(for combining surveys from 5, 4, 3, 2, and 1) cycles
 
