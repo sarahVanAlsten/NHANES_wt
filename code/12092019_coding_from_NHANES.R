@@ -763,9 +763,9 @@ male07 <- male07 %>%
   mutate(hetero = ifelse(SXQ292 == 1, 1,
                          ifelse(SXQ292 %in% c(2,3,4,5,9), 0, NA))) %>%
   mutate(orient = ifelse(hetero == 1, 1, #hetero
-                         ifelse(SXQ294 %in% c(2,3), 2, #lesbian/gay
-                                ifelse(SXQ294 == 4, 3, #bisexual
-                                       ifelse(SXQ294 %in% c(5,9), 4, NA)))))%>% #something else
+                         ifelse(SXQ292 %in% c(2,3), 2, #lesbian/gay
+                                ifelse(SXQ292 == 4, 3, #bisexual
+                                       ifelse(SXQ292 %in% c(5,9), 4, NA)))))%>% #something else
   mutate(wsexw = ifelse(SXQ410 == 0, 0, #zero male partners
                         ifelse(SXQ410 > 0 & SXQ410 < 777, 1, NA))) %>% #here it's really msexm but that would mess up
   #when putting the columns back together
@@ -777,9 +777,9 @@ male0911 <- male0911 %>%
   mutate(hetero = ifelse(SXQ292 == 1, 1,
                          ifelse(SXQ292 %in% c(2,3,4,5,9), 0, NA))) %>%
   mutate(orient = ifelse(hetero == 1, 1, #hetero
-                         ifelse(SXQ294 %in% c(2,3), 2, #lesbian/gay
-                                ifelse(SXQ294 == 4, 3, #bisexual
-                                       ifelse(SXQ294 %in% c(5,9), 4, NA)))))%>% #something else
+                         ifelse(SXQ292 %in% c(2,3), 2, #lesbian/gay
+                                ifelse(SXQ292 == 4, 3, #bisexual
+                                       ifelse(SXQ292 %in% c(5,9), 4, NA)))))%>% #something else
   mutate(wsexw = ifelse(SXQ410 == 0, 0, #had sex with men
                         ifelse(SXQ410 < 7777 & SXQ410 > 0, 1, NA))) %>% #didn't have sex with men
   mutate(newwsw = ifelse(hetero == 1 | wsexw == 0, 0, #hetero or no women sex
@@ -941,3 +941,10 @@ depDag <- dagify(Dep ~ LC + Sex + Race + Orient + FS + Edu + Age + Marital + Inc
 
 ggdag(depDag, text = T) + theme_dag()
 ggdag_adjustment_set(depDag, text = T, use_labels = F, shadow = TRUE)
+
+
+
+# Latent class ------------------------------------------------------------
+library(poLCA)
+
+#how many NA's are in the variables of interest

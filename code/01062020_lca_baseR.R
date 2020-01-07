@@ -97,4 +97,60 @@ class7f <-lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
 summary(class5f) #while one class is v small, it's the too thin and I expect it to be rare anyway. Adding more
 #categories would likely overcomplicate. stick with 5 class soln
 
+table(lcaDat$orient)
+table(lcaDat$FSDHH)
+table(lcaDat$edu)
+table(lcaDat$maritalstatus)
+table(lcaDat$age4)
+table(lcaDat$Race)
+table(lcaDat$Income)
 
+lcaDat$orient <- lcaDat$orient - 1
+lcaDat$age4 <- lcaDat$age4 - 1
+
+#try doing this as a lcacov (essentially a regression to predict determinants of LC)
+
+lcaCov <- lcacov(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~Male + factor(Race) +
+			factor(Income) + factor(age4) + factor(orient) +factor(edu),
+			 nclass = 5, data = lcaDat, tol = 1e-06,  
+		    stabilize.alphas =1, flatten.rhos = 1, weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
+
+summary(lcaCov)
+
+
+#stratify by sex and run individual lcacov for males vs females
+lcaCovMale <- lcacov(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~ factor(Race) +
+			 factor(Income) + factor(age4) + factor(orient) +factor(edu),
+			 nclass = 4, data = male, tol = 1e-06,  
+		    stabilize.alphas =1, flatten.rhos = 1, weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
+
+summary(lcaCovMale)
+
+
+#stratify by sex and run individual lcacov for males vs females
+lcaCovFem <- lcacov(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~ factor(Race) +
+			 factor(Income) + factor(age4) + factor(orient) +factor(edu),
+			 nclass = 5, data = fem, tol = 1e-06,  
+		    stabilize.alphas =1, flatten.rhos = 1, weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
+
+summary(lcaCovFem)
+
+lcaDat$depressionBinary <- lcaDat$depressionBinary - 1
+fem$depressionBinary <- factor(fem$depressionBinary -1)
+fem <- lcaDat[lcaDat$Male == 1,]
+table(lcaDat$orient)
+lcaDat$hetero <- ifelse(is.na(lcaDat$orient), NA,ifelse(lcaDat$orient == 2, 1, 0))
+lcaDat$BMI2 <- ifelse(is.na(lcaDat$BMIcat), NA, 
+			ifelse(lcaDat$BMIcat <=3, lcaDat$BMIcat,4))
+
+
+xtabs(~lcaDat$Race + lcaDat$Male + lcaDat$depressionBinary)
+
+#now, use this info to see how classes related to depression
+depLCCA <- lcca(formula.treatment = cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMI2)~factor(Race),
+			formula.outcome = depressionBinary ~factor(Race) ,
+			nclass = 3, data = lcaDat, tol = 1e-06, iter.max = 30000, 
+		      stabilize.alphas =1, flatten.rhos = 1, weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA,
+			subpop = (Male == 1))
+
+summary(depLCCA)
