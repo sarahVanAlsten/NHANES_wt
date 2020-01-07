@@ -916,8 +916,28 @@ lcaSub <- lcaSub %>%
                             grepl(pattern = "LikeToWeigh", names(lcaSub))), 
             .funs = add1)
 
+
+
+lcaSub$BMIcat <- lcaSub$BMIcat -1
+
 #write csv so that it's readable for LCA
 write.csv(lcaSub,  "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\12092019lca.csv")
 lcaSub <- read.csv("C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\12092019lca.csv")
 nhanes.2007.to.2012 <- read.csv("C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\12092019no2013.csv")
 
+
+# Build Dag ---------------------------------------------------------------
+
+library(ggdag)
+library(dagitty)
+
+depDag <- dagify(Dep ~ LC + Sex + Race + Orient + FS + Edu + Age + Marital + Income,
+                      LC ~ Sex + Race + Orient + FS + Edu + Age + Income,
+                      FS ~ Income,
+                      Income ~ Marital + Edu + Race + Income,
+                      Edu ~ Race,
+                      exposure = "LC",
+                      outcome = "Dep")
+
+ggdag(depDag, text = T) + theme_dag()
+ggdag_adjustment_set(depDag, text = T, use_labels = F, shadow = TRUE)
