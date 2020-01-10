@@ -942,9 +942,59 @@ depDag <- dagify(Dep ~ LC + Sex + Race + Orient + FS + Edu + Age + Marital + Inc
 ggdag(depDag, text = T) + theme_dag()
 ggdag_adjustment_set(depDag, text = T, use_labels = F, shadow = TRUE)
 
+fs.diet.sum <-nhanes.2007.to.2012 %>%
+  group_by(FSDHH) %>%
+  select(contains("lastYr")) %>%
+  summarise_all(.funs = ~(sum(. == 1, na.rm =T)/n()))
 
+fs.mg.sum <-nhanes.2007.to.2012 %>%
+  group_by(FSDHH) %>%
+  select(contains("ng",ignore.case = FALSE)) %>%
+  summarise_all(.funs = ~(sum(. == 1, na.rm =T)/n())) %>%
+  select(c(1, 4:22))
 
-# Latent class ------------------------------------------------------------
-library(poLCA)
+#food insecurity with/without hunger
+fs.hun.diet.sum <-nhanes.2007.to.2012 %>%
+  group_by(fsWithHunger) %>%
+  select(contains("lastYr")) %>%
+  summarise_all(.funs = ~(sum(. == 1, na.rm =T)/n()))
 
-#how many NA's are in the variables of interest
+fs.hun.ng.sum <-nhanes.2007.to.2012 %>%
+  group_by(fsWithHunger) %>%
+  select(contains("ng",ignore.case = FALSE)) %>%
+  summarise_all(.funs = ~(sum(. == 1, na.rm =T)/n())) %>%
+  select(c(1, 4:22))
+
+#continuous measure of food insecurity
+fs.cont.diet.sum <-nhanes.2007.to.2012 %>%
+  group_by(hhFScont) %>%
+  select(contains("lastYr")) %>%
+  summarise_all(.funs = ~(sum(. == 1, na.rm =T)/n()))
+
+fs.cont.ng.sum <-nhanes.2007.to.2012 %>%
+  group_by(hhFScont) %>%
+  select(contains("ng",ignore.case = FALSE)) %>%
+  summarise_all(.funs = ~(sum(. == 1, na.rm =T)/n())) %>%
+  select(c(1, 4:22))
+
+#graph continuous results
+ggplot(fs.cont.diet.sum,
+       aes(y = lastYrLose, x= hhFScont))+
+  geom_point()
+
+ggplot(fs.cont.diet.sum,
+       aes(y = lastYrAteLess, x= hhFScont))+
+  geom_point()
+
+ggplot(fs.cont.diet.sum,
+       aes(y = lastYrDietPill, x= hhFScont))+
+  geom_point()
+
+ggplot(fs.cont.diet.sum,
+       aes(y = lastYrOthRx, x= hhFScont))+
+  geom_point()
+
+ggplot(fs.cont.diet.sum,
+       aes(y = lastYrLaxVom, x= hhFScont))+
+  geom_point()
+
