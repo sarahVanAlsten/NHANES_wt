@@ -97,6 +97,27 @@ class7f <-lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
 summary(class5f) #while one class is v small, it's the too thin and I expect it to be rare anyway. Adding more
 #categories would likely overcomplicate. stick with 5 class soln
 
+fem.nona <- fem[!is.na(fem$orient),]
+male.nona <- male[!is.na(male$orient),]
+
+#are classes invariant by orientation?
+class5.con.f <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
+                 nclass = 5, data = fem.nona, tol = 1e-06, flatten.rhos = 1, 
+                 flatten.gammas =1, iter.max = 20000, group = factor(orient),
+                 constrain.rhos = T, 
+                 weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
+
+set.seed(99)
+class5.unc.f <- lca(cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMIcat)~1,
+                  nclass = 5, data = fem.nona, tol = 1e-06, flatten.rhos = 1, 
+                  flatten.gammas =1, iter.max = 20000, group = factor(orient),
+                  constrain.rhos = F, 
+                  weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA)
+compare.fit(class5.con.f, class5.unc.f) #yes there is invariance: ChiSq = 505, df = 195, p < 0.001
+
+summary(class5.unc.f)
+
+
 table(lcaDat$orient)
 table(lcaDat$FSDHH)
 table(lcaDat$edu)
@@ -145,12 +166,114 @@ lcaDat$BMI2 <- ifelse(is.na(lcaDat$BMIcat), NA,
 
 
 xtabs(~lcaDat$Race + lcaDat$Male + lcaDat$depressionBinary)
+noAsian <- lcaDat[lcaDat$Race != 4,]
+lcaDat$minority <- ifelse(lcaDat$Race == 1, 0, 1)
+
+table(lcaDat$minority, lcaDat$depressionBinary)
 
 #now, use this info to see how classes related to depression
-depLCCA <- lcca(formula.treatment = cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMI2)~factor(Race),
-			formula.outcome = depressionBinary ~factor(Race) ,
-			nclass = 3, data = lcaDat, tol = 1e-06, iter.max = 30000, 
-		      stabilize.alphas =1, flatten.rhos = 1, weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA,
-			subpop = (Male == 1))
+depLCCA <- lcca(formula.treatment = cbind(doingAbtWt, ConsiderWt, LikeToWeigh, BMI2)~factor(minority),
+			formula.outcome = depressionBinary ~factor(minority) ,
+			nclass = 2, data = lcaDat, tol = 1e-06, iter.max = 30000, 
+		      stabilize.alphas =1, flatten.rhos = 1)
 
 summary(depLCCA)
+
+
+##########################################################################
+#create a survey sample design by the primary sampling unit, the stratum, and the revised cycle weight
+#(for combining surveys from 5, 4, 3, 2, and 1) cycles
+
+dclus3 <-survey::svydesign(id=~SDMVPSU, 
+                           strata = ~SDMVSTRA, 
+                           weights=~WTMEC6YR, 
+                           nest = TRUE, 
+                           data=dat)
+
+
+library(poLCA)
+
+#lca.dat <- yw2.lose %>%
+#  select(SEQN, RIAGENDR, BMIcat, considerWt, doAboutWt, contains("whyLose"))
+
+#lca.dat$BMIcat <- ifelse(is.na(lca.dat$BMIcat), 7, lca.dat$BMIcat)
+#lca.dat$considerWt <- ifelse(is.na(lca.dat$considerWt), 7, lca.dat$considerWt)
+#lca.dat$doAboutWt <- ifelse(is.na(lca.dat$doAboutWt), 7, lca.dat$doAboutWt)
+
+#lca.dat <- lca.dat %>%
+#  mutate_all(.funs = replace_na, replace = 2)
+
+#lca.dat$BMIcat <- ifelse(lca.dat$BMIcat == 7, NA, lca.dat$BMIcat)
+#lca.dat$considerWt <- ifelse(lca.dat$considerWt == 7, NA, lca.dat$considerWt)
+#lca.dat$doAboutWt <- ifelse(lca.dat$doAboutWt == 7,NA, lca.dat$doAboutWt)
+yw2.lose <- read.csv("C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\yw2lose.csv")
+#split by gender
+fem.youth <- subset(yw2.lose, RIAGENDR ==2)
+male.youth <- subset(yw2.lose, RIAGENDR !=2)
+
+
+lc.f <- lca(cbind(whyLose.look,
+                  whyLose.health,
+                  whyLose.sports,
+                  whyLose.tease,
+                  whyLose.clothes,
+                  whyLose.boyslike,
+                  whyLose.girlslike,
+                  whyLose.friendare,
+                  whyLose.familyare,
+                  whyLose.parentWants,
+                  whyLose.coachWants,
+                  whyLose.docWants,
+                  whyLose.amFat,
+                  whyLose.feelBetter,
+                  whyLose.other)~1,
+		weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA,
+            data = fem.youth,
+            nclass = 3,
+            iter.max = 20000,
+            flatten.rhos = 1)
+summary(lc.f)
+
+lc.m <- lca(cbind(whyLose.look,
+                  whyLose.health,
+                  whyLose.sports,
+                  whyLose.tease,
+                  whyLose.clothes,
+                  whyLose.boyslike,
+                  whyLose.girlslike,
+                  whyLose.friendare,
+                  whyLose.familyare,
+                  whyLose.parentWants,
+                  whyLose.coachWants,
+                  whyLose.docWants,
+                  whyLose.amFat,
+                  whyLose.feelBetter,
+                  whyLose.other)~1,
+		weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA,
+            data = male.youth,
+            nclass = 3,
+            iter.max = 20000,
+            flatten.rhos = 1)
+summary(lc.m)
+
+lc.f2 <- lcacov(cbind(whyLose.look,
+                  whyLose.health,
+                  whyLose.sports,
+                  whyLose.tease,
+                  whyLose.clothes,
+                  whyLose.boyslike,
+                  whyLose.girlslike,
+                  whyLose.friendare,
+                  whyLose.familyare,
+                  whyLose.parentWants,
+                  whyLose.coachWants,
+                  whyLose.docWants,
+                  whyLose.amFat,
+                  whyLose.feelBetter,
+                  whyLose.other)~factor(RIAGENDR),
+		weights = WTMEC6YR, clusters = SDMVPSU, strata = SDMVSTRA,
+            data = yw2.lose,
+            nclass = 3,
+            iter.max = 20000,
+            flatten.rhos = 1)
+summary(lc.f2)
