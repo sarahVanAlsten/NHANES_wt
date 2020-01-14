@@ -1145,6 +1145,18 @@ yw <- yw %>%
 
 yw <- yw %>% ungroup()
 
+yw <- yw %>%
+  select(contains("often")) %>%
+  mutate_all(.funs = na_if, y = 9)
+
+yw <- yw %>%
+  mutate_all(.funs = ~(ordered(factor(.x))))
+
+#undo the ordinal
+yw <- yw %>%
+  mutate_all(.funs = ~(as.numeric(.x)))
+
+
 #summary
 yw.sum <- yw %>%
   summarise(sum(oftenLstWt == 1, na.rm =T)/n(),
@@ -1347,4 +1359,27 @@ table(male.youth$predclass, male.youth$considerWt)
 prop.table(table(male.youth$predclass, male.youth$considerWt),1)
 descr::CrossTable(male.youth$predclass, male.youth$considerWt,
                   fisher = T)
+
+#do same for actual behavior vs why want to lose
+get_AIC_BIC_2 <- function(maxclass = 10, data){
+  aicVec <- c(rep(0, maxclass))
+  bicVec <- aicVec
+  for (i in 2:maxclass){
+    lc <- poLCA(cbind(oftenLstWt,
+                      oftenDiet,
+                      oftenStarve,
+                      oftenCutBack,
+                      oftenSkip,
+                      oftenExerc,
+                      oftenLessSweet)~1,
+                data = data,
+                nclass = i,
+                maxiter = 20000)
+    aicVec[i] <- lc$aic
+    bicVec[i] <- lc$bic
+  }
+  return(cbind(aicVec, bicVec))
+}
+
+get_AIC_BIC_2(8, yw)
 

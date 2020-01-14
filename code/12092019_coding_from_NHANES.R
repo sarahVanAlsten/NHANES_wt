@@ -848,6 +848,7 @@ nhanes.2007.to.2012 <- dat[!dat$cycle %in% "2013-2014",]
 #first write the csv of this data
 write.csv(dat, "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\12092019nhanes.csv")
 write.csv(nhanes.2007.to.2012, "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\12092019no2013.csv")
+dat <- readr::read_csv("C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\12092019nhanes.csv")
 #########################################################################
 #Cross tabs of each of the weight behavior variables, separated out by sex
 male <- nhanes.2007.to.2012[nhanes.2007.to.2012$Male == 1,]
