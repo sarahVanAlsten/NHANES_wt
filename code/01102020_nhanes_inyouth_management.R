@@ -695,7 +695,11 @@ dat <-
   mutate(alcWeek = ifelse(is.na(alcUnit) | ALQ120Q %in% c(777,999, NA), NA,
                           ifelse(twelveDrinksLt == 0, 0, ALQ120Q * alcUnit))) %>%
   mutate(bingeDrk = ifelse(twelveDrinksLt == 0, 0,
-                           ifelse(ALQ140Q > 1 & ALQ140Q < 370, 1,NA))) #ever binge drank in last year
+                           ifelse(ALQ140Q == 0, 0,
+                                  ifelse(ALQ140Q > 1 & ALQ140Q < 370, 1, NA))))
+
+table(dat$bingeDrk)
+
 
 ########################################################################
 #Smoking

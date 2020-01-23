@@ -666,13 +666,13 @@ dat <-
 dat <-
   dat %>%
   mutate(smoke100 = ifelse(SMQ020 %in% c(9,7,NA), NA,
-                           ifelse(SMQ020 == 1, 1,
-                                  ifelse(SMQ020 == 2, 0, NA)))) %>%
+                           ifelse(SMQ020 == 1, 1, 0))) %>%
   mutate(nowSmoke = ifelse(SMQ040 %in% c(9,7, NA), NA,
                            ifelse(SMQ040 == 3, 0, 1))) %>%
-  mutate(smkStat = ifelse(nowSmoke == 1, 2, #current
-                          ifelse(nowSmoke == 0 & smoke100 == 0, 0, #never
-                                 ifelse(nowSmoke == 0 & smoke100 == 1, 1, NA)))) #former
+  mutate(smkStat = ifelse(smoke100 == 0, 0, #never
+                              ifelse(nowSmoke == 0 & smoke100 == 1, 1, 
+                                     ifelse(nowSmoke == 1, 2, NA)))) #former
+
 ########################################################################
 #Age category, marital status, and education
 dat <-
