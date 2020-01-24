@@ -85,6 +85,11 @@ polychor(dat$BMIcat, dat$ConsiderWt, std.err = T) #0.7403
 cor.test(dat$ConsiderWt, dat$LikeToWeigh, method = "kendall")
 polychor(dat$ConsiderWt, dat$LikeToWeigh, std.err = T) #-0.8913
 
+polychor(dat$ConsiderWt, dat$doingAbtWt, std.err =T)
+polychor(dat$LikeToWeigh, dat$doingAbtWt, std.err = T)
+polychor(dat$BMIcat, dat$doingAbtWt, std.err = T)
+
+
 #for nominal... already had chisq, get the cramer's v for strength of assoc
 lsr::cramersV(dat$BMIcat, dat$doingAbtWt) #0.175
 lsr::cramersV(dat$LikeToWeigh, dat$doingAbtWt) #0.355
@@ -338,6 +343,85 @@ knitr::kable(s3d)
 
 ```
 
+
+```{r}
+#unadjusted odds for drinkression
+drink1.ltw <- svyglm(bingeDrk ~ likeTo, #ref = same
+                design = svy,
+                family = binomial(link = "logit"))
+getOR(drink1.ltw)
+
+drink1.cow <- svyglm(bingeDrk ~ consid, #ref = about right
+                design = svy,
+                family = binomial(link = "logit"))
+getOR(drink1.cow)
+
+drink1.daw <- svyglm(bingeDrk ~ doingWt, #ref = not doing anything
+                design = svy,
+                family = binomial(link = "logit"))
+getOR2(drink1.daw)
+################################################################################################
+#add in BMI category
+drink2.ltw <- svyglm(bingeDrk ~ likeTo + factor(BMIcat), 
+                design = svy,
+                family = binomial(link = "logit"))
+getOR(drink2.ltw)
+
+drink2.cow <- svyglm(bingeDrk ~ consid + factor(BMIcat), 
+                design = svy,
+                family = binomial(link = "logit"))
+getOR(drink2.cow)
+
+drink2.daw <- svyglm(bingeDrk ~ doingWt + factor(BMIcat), 
+                design = svy,
+                family = binomial(link = "logit"))
+getOR2(drink2.daw)
+##################################################################################################
+#add in other potential confounders
+drink3.ltw <- svyglm(bingeDrk ~ likeTo + factor(BMIcat) + factor(age4) +
+                  factor(Male) + factor(maritalstatus) + factor(edu) + 
+                    factor(Income) + factor(Race) + factor(depressionBinary),
+                design = svy,
+                family = binomial(link = "logit"))
+getOR(drink3.ltw)
+
+drink3.cow <- svyglm(bingeDrk ~ consid + factor(BMIcat) + factor(age4) +
+                  factor(Male) + factor(maritalstatus) + factor(edu) +
+                    factor(Income) + factor(Race)+ factor(depressionBinary), 
+                design = svy,
+                family = binomial(link = "logit"))
+getOR(drink3.cow)
+
+drink3.daw <- svyglm(bingeDrk ~ doingWt + factor(BMIcat) + factor(age4) +
+                  factor(Male) + factor(maritalstatus) + factor(edu) +
+                    factor(Income) + factor(Race)+ factor(depressionBinary),
+                design = svy,
+                family = binomial(link = "logit"))
+getOR2(drink3.daw)
+
+#Models with all 3 of the components
+drink1.all <- glm(bingeDrk ~ likeTo + doingWt +
+                  consid,
+                data = dat,
+                family = binomial(link = "logit"))
+summary(drink1.all)
+
+drink2.all <- glm(bingeDrk ~ likeTo + doingWt +
+                  consid + factor(BMIcat),
+                data = dat,
+                family = binomial(link = "logit"))
+summary(drink2.all)
+
+drink5.all <- glm(bingeDrk ~ likeTo + doingWt +
+                  consid + factor(BMIcat) + factor(age4) +
+                  factor(Male) + factor(maritalstatus) + factor(edu) + 
+                    factor(Income) + factor(Race)+ factor(depressionBinary),
+                data = dat,
+                family = binomial(link = "logit"))
+summary(drink5.all)
+```
+
+
 #Binge Drinking = 5+ drinks at once (Never/Ever)
 ```{r}
 #unadjusted odds for drinkression
@@ -476,4 +560,50 @@ result$`z test` <- z
 
 
 ```
+
+
+
+```{r}
+#Food security
+options(scipen = 0)
+fs.ltw <- multinom(likeTo ~ fsWithHunger, data = dat)
+broom::tidy(fs.ltw, conf.int = T, exponentiate = T)
+
+fs.ltw <- multinom(likeTo ~ factor(hhFScat), data = dat)
+broom::tidy(fs.ltw, conf.int = T, exponentiate = T)
+
+
+fs.ltw.bmi <- multinom(likeTo ~ fsWithHunger + factor(BMIcat), data = dat)
+broom::tidy(fs.ltw.bmi, conf.int = T, exponentiate = T)
+
+fs.ltw.bmi <- multinom(likeTo ~ factor(hhFScat)+ factor(BMIcat), data = dat)
+broom::tidy(fs.ltw.bmi, conf.int = T, exponentiate = T)
+
+
+fs.ltw.male<- multinom(likeTo ~ fsWithHunger + factor(BMIcat) + Male, data = dat)
+broom::tidy(fs.ltw.male, conf.int = T, exponentiate = T)
+
+fs.ltw.male <- multinom(likeTo ~ factor(hhFScat)+ factor(BMIcat) + Male, data = dat)
+broom::tidy(fs.ltw.male, conf.int = T, exponentiate = T)
+
+fs.ltw.race<- multinom(likeTo ~ fsWithHunger + factor(BMIcat) + Male + factor(Race), data = dat)
+broom::tidy(fs.ltw.race, conf.int = T, exponentiate = T)
+
+fs.ltw.race <- multinom(likeTo ~ factor(hhFScat)+ factor(BMIcat) + Male + factor(Race), data = dat)
+broom::tidy(fs.ltw.race, conf.int = T, exponentiate = T)
+
+fs.ltw.inc <- multinom(likeTo ~ fsWithHunger + factor(BMIcat) + Male + factor(Race) +factor(Income), data = dat)
+broom::tidy(fs.ltw.inc, conf.int = T, exponentiate = T)
+
+fs.ltw.inc <- multinom(likeTo ~ factor(hhFScat)+ factor(BMIcat) + Male + factor(Race)+factor(Income), data = dat)
+broom::tidy(fs.ltw.inc, conf.int = T, exponentiate = T)
+
+```
+
+
+
+
+
+
+
 
