@@ -7,6 +7,7 @@ output: word_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+library(RNHANES)
 library(descr)
 library(tidyverse)
 library(MASS)
@@ -46,8 +47,24 @@ dat$doingWt = relevel(factor(dat$doingAbtWt, labels = c("lost weight: intentiona
                                                     "doing nothing")),
                              ref = "doing nothing")
 
-svy <- svydesign(id = ~SDMVPSU, 
-                 strata = ~SDMVSTRA, 
+
+#add in alcohol for participants age 18-19, which is in separte Questionnaire in 09
+ald09 <- nhanes_load_data("ALQY", "2009-2010", demographics = T)
+
+dat <- dat %>% left_join(ald09, by = "SEQN")
+
+#code binge drinking for participants age 18-19
+dat <- dat %>%
+  mutate_at(vars(contains("bingeDrk")),
+            .funs = ~(ifelse(RIDAGEYR.x > 19, bingeDrk,
+                             ifelse(cycle.x != "2009 - 2010", bingeDrk,
+                             ifelse(ALQ101 == 2 | ALQ110 == 2, 0, #LT 12 lt
+                             ifelse(ALQ101 %in% c(7,9) & ALQ110 %in% c(7,9), NA, #DK
+                                    ifelse(ALQ140Q >=1, 1, 0))))))) #yes, ever 5+
+
+
+svy <- svydesign(id = ~SDMVPSU.x, 
+                 strata = ~SDMVSTRA.x, 
                  weights = ~WTMEC6YR, 
                  nest = TRUE, 
                  data = dat)
@@ -88,6 +105,26 @@ polychor(dat$ConsiderWt, dat$LikeToWeigh, std.err = T) #-0.8913
 polychor(dat$ConsiderWt, dat$doingAbtWt, std.err =T)
 polychor(dat$LikeToWeigh, dat$doingAbtWt, std.err = T)
 polychor(dat$BMIcat, dat$doingAbtWt, std.err = T)
+
+#############################
+#for men
+male <- dat[dat$Male == 1 ,]
+polychor(male$BMIcat, male$LikeToWeigh, std.err = T) #-0.7628 (0.006702)
+polychor(male$BMIcat, male$ConsiderWt, std.err = T)#0.768 (0.006706)
+polychor(male$ConsiderWt, male$LikeToWeigh, std.err = T) #-0.891 (0.004142)
+polychor(male$ConsiderWt, male$doingAbtWt, std.err =T) #-0.3713 (0.01326)
+polychor(male$LikeToWeigh, male$doingAbtWt, std.err = T)# 0.4434 (0.01238)
+polychor(male$BMIcat, male$doingAbtWt, std.err = T) # -0.3713 (0.01203)
+
+
+#for women
+female <- dat[dat$Male == 0 ,]
+polychor(female$BMIcat, female$LikeToWeigh, std.err = T) # -0.6854 (0.009113)
+polychor(female$BMIcat, female$ConsiderWt, std.err = T)# 0.7356 (0.007398)
+polychor(female$ConsiderWt, female$LikeToWeigh, std.err = T) #-0.884 (0.004766)
+polychor(female$ConsiderWt, female$doingAbtWt, std.err =T) #-0.3505 (0.01352)
+polychor(female$LikeToWeigh, female$doingAbtWt, std.err = T)# 0.4209 (0.01342)
+polychor(female$BMIcat, female$doingAbtWt, std.err = T) # -0.2774 (0.01224)
 
 
 #for nominal... already had chisq, get the cramer's v for strength of assoc
@@ -345,7 +382,7 @@ knitr::kable(s3d)
 
 
 ```{r}
-#unadjusted odds for drinkression
+#unadjusted odds for drink
 drink1.ltw <- svyglm(bingeDrk ~ likeTo, #ref = same
                 design = svy,
                 family = binomial(link = "logit"))
@@ -464,6 +501,7 @@ drink3.ltw <- glm(bingeDrk ~ likeTo + factor(BMIcat) + factor(age4) +
                 family = binomial(link = "logit"))
 summary(drink3.ltw)
 
+
 drink3.cow <- glm(bingeDrk ~ consid + factor(BMIcat) + factor(age4) +
                   factor(Male) + factor(maritalstatus) + factor(edu) +
                     factor(Income) + factor(Race)+ factor(depressionBinary), 
@@ -556,7 +594,14 @@ result$name <- c(rep("intercept",2),
 result$model <- rep(c(1,2), 3)
 result$beta <- as.vector(as.matrix(mfitcoef))
 result$se <- as.vector(as.matrix(se))
-result$`z test` <- z
+result$`z test` <- c(z$X1, z$X2, z$X3)
+
+result$`p value` <- 2*pnorm(-abs(result$`z test`))
+
+result$OR <- exp(result$beta)
+result$lower <- exp(result$beta - 1.96*result$se)
+result$upper <- exp(result$beta + 1.96*result$se)
+
 
 
 ```
