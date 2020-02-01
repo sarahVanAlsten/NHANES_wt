@@ -1,0 +1,703 @@
+---
+title: "Stratified NHANES"
+author: "Sarah Van Alsten"
+date: "1/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(RNHANES)
+library(descr)
+library(tidyverse)
+library(polycor)
+library(survey)
+library(nnet) #for multinomial logit
+library(broom)
+library(multcomp) #for posthoc testing
+
+
+dat <- read_csv("C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\01282020nhanes.csv")
+
+
+#calculate Self report bmi
+dat <- dat %>% 
+  mutate(SRbmi = ifelse(is.na(WHD010) | is.na(WHD020), NA,
+                        ifelse(WHD010 > 84 | WHD020 > 1000, NA,
+                               (WHD020/2.2046)/ (WHD010*0.0254)^2)))
+
+dat <- dat %>%
+  mutate(SRbmicat = ifelse(SRbmi < 18.5, 1,
+                           ifelse(SRbmi < 25, 2,
+                                  ifelse(SRbmi < 30, 3,
+                                         ifelse(SRbmi < 35, 4,
+                                                ifelse(SRbmi < 40, 5, 6))))))
+
+
+dat %>%
+  drop_na(likeTo) %>%
+  ggplot(aes(x= SRbmi, y = BMXBMI, color = (BMXBMI - SRbmi)))+ 
+  geom_point() +
+  facet_grid(likeTo~Male)
+
+#2 = SR bigger than real, 1 = SR smaller than real, 0 = about accurate
+dat %>%
+  drop_na(consid) %>%
+  ggplot(aes(x= SRbmi, y = BMXBMI, color = factor(ifelse(BMXBMI - SRbmi > 1.5, 1,
+                                                  ifelse(BMXBMI - SRbmi < (0-1.5), 
+                                                         2, 0)))))+ 
+  geom_point() +
+  facet_grid(consid~Male)
+
+
+#set up survey design
+svy <- svydesign(id = ~SDMVPSU.x, 
+                 strata = ~SDMVSTRA.x, 
+                 weights = ~WTMEC6YR, 
+                 nest = TRUE, 
+                 data = dat)
+
+
+#for subpop (male and female)
+male.svy <- subset(svy, Male == 1)
+fema.svy <- subset(svy, Male == 0)
+
+```
+
+## Polychoric Correlations
+
+```{r}
+#Correlations: stratified
+#############################
+#for men
+male <- dat[dat$Male == 1 ,]
+polychor(male$BMIcat, male$LikeToWeigh, std.err = T) #-0.7628 (0.006702)
+polychor(male$BMIcat, male$ConsiderWt, std.err = T)#0.768 (0.006706)
+polychor(male$ConsiderWt, male$LikeToWeigh, std.err = T) #-0.891 (0.004142)
+polychor(male$ConsiderWt, male$doingAbtWt, std.err =T) #-0.3713 (0.01326)
+polychor(male$LikeToWeigh, male$doingAbtWt, std.err = T)# 0.4434 (0.01238)
+polychor(male$BMIcat, male$doingAbtWt, std.err = T) # -0.3713 (0.01203)
+
+
+#for women
+female <- dat[dat$Male == 0 ,]
+polychor(female$BMIcat, female$LikeToWeigh, std.err = T) # -0.6854 (0.009113)
+polychor(female$BMIcat, female$ConsiderWt, std.err = T)# 0.7356 (0.007398)
+polychor(female$ConsiderWt, female$LikeToWeigh, std.err = T) #-0.884 (0.004766)
+polychor(female$ConsiderWt, female$doingAbtWt, std.err =T) #-0.3505 (0.01352)
+polychor(female$LikeToWeigh, female$doingAbtWt, std.err = T)# 0.4209 (0.01342)
+polychor(female$BMIcat, female$doingAbtWt, std.err = T) # -0.2774 (0.01224)
+
+
+
+#also do correlations for SR bmicat
+polychor(male$SRbmicat, male$LikeToWeigh, std.err = T) #-0.7335 (0.007409)
+polychor(female$SRbmicat, female$LikeToWeigh, std.err = T) #-0.6848 (0.009441)
+
+polychor(male$SRbmicat, male$ConsiderWt, std.err = T) # 0.7444 (0.007262)
+polychor(female$SRbmicat, female$ConsiderWt, std.err = T) #0.7437 (0.007525)
+
+polychor(male$SRbmicat, male$doingAbtWt, std.err = T) # -0.3304 (0.01258)
+polychor(female$SRbmicat, female$doingAbtWt, std.err = T) #-0.2845 (0.01245)
+
+cor.test(male$SRbmicat, male$BMIcat, method = "kendall") # tau = 0.8391284 
+cor.test(female$SRbmicat, female$BMIcat, method = "kendall") #tau = 0.8691434
+
+cor.test(male$SRbmicat, male$BMIcat, method = "spearman", exact = F) # rho = 0.8824629
+cor.test(female$SRbmicat, female$BMIcat, method = "spearman", exact = F) #rho =0.9168124
+
+#corr of actual BMI
+cor.test(male$SRbmi, male$BMXBMI) # 0.9501199
+cor.test(female$SRbmi, female$BMXBMI) #0.956528 
+
+
+
+#do some data visualization
+dat %>%
+  ggplot(aes(x = likeToWeighFact, y = BMXBMI)) +
+  facet_wrap(.~ consid)+
+  geom_violin() 
+
+
+dat %>%
+  ggplot(aes(x = doingWt, y = BMXBMI)) +
+  facet_wrap(.~ consid)+
+  geom_boxplot() 
+
+dat %>%
+  ggplot(aes(x = doingWt, y = BMXBMI)) +
+  facet_wrap(.~ likeTo)+
+  geom_boxplot() 
+
+dat %>%
+  ggplot(aes(x = doingWt, y = SRbmi)) +
+  facet_wrap(.~ likeTo)+
+  geom_boxplot() 
+
+
+dat %>%
+  ggplot(aes(x = SRbmi, y = BMXBMI, color = consid))+
+  geom_point()+
+  facet_grid(Male~likeTo)
+```
+
+```{r}
+getOR <- function(mod){
+  ors <- exp(mod$coefficients)[2:3]
+  cis <- exp(confint(mod))[2:3,]
+  modframe <- as.data.frame(cbind(ors, cis[,1], cis[,2]))
+  names(modframe) <- c("ors", "lower", "upper")
+  modframe$print <- paste(sprintf(as.numeric(modframe$ors), fmt = "%.2f"), "(",
+                          sprintf(as.numeric(modframe$lower), fmt = "%.2f"), "-",
+                          sprintf(as.numeric(modframe$upper), fmt = "%.2f"), ")")
+  print(modframe$print[1])
+  print(modframe$print[2])
+}
+
+getOR2 <- function(mod){
+  ors <- exp(mod$coefficients)[2:5]
+  cis <- exp(confint(mod))[2:5,]
+  modframe <- as.data.frame(cbind(ors, cis[,1], cis[,2]))
+  names(modframe) <- c("ors", "lower", "upper")
+  modframe$print <- paste(sprintf(as.numeric(modframe$ors), fmt = "%.2f"), "(",
+                          sprintf(as.numeric(modframe$lower), fmt = "%.2f"), "-",
+                          sprintf(as.numeric(modframe$upper), fmt = "%.2f"), ")")
+  print(modframe$print[1])
+  print(modframe$print[2])
+  print(modframe$print[3])
+  print(modframe$print[4])
+}
+
+
+#unadjusted odds for depression
+dep1.ltw <- svyglm(depressionBinary ~ likeTo, #ref = same
+                design = fema.svy,
+                family = binomial(link = "logit"))
+summary(dep1.ltw)
+getOR(dep1.ltw)
+
+dep1.cow <- svyglm(depressionBinary ~ consid, #ref = about right
+                design = fema.svy,
+                family = binomial(link = "logit"))
+getOR(dep1.cow)
+
+dep1.daw <- svyglm(depressionBinary ~ doingWt, #ref = not doing anything
+                design = fema.svy,
+                family = binomial(link = "logit"))
+
+getOR2(dep1.daw)
+
+```
+
+
+```{r}
+################################################################################################
+#add in BMI category
+dep2.ltw <- svyglm(depressionBinary ~ likeTo + factor(BMIcat), 
+                design = fema.svy,
+                family = binomial(link = "logit"))
+getOR(dep2.ltw)
+
+dep2.cow <- svyglm(depressionBinary ~ consid + factor(BMIcat), 
+                design = fema.svy,
+                family = binomial(link = "logit"))
+getOR(dep2.cow)
+
+dep2.daw <- svyglm(depressionBinary ~ doingWt + factor(BMIcat), 
+                design = fema.svy,
+                family = binomial(link = "logit"))
+getOR2(dep2.daw)
+```
+
+```{r}
+##################################################################################################
+#add in other potential confounders
+dep3.ltw <- svyglm(depressionBinary ~ likeTo + factor(BMIcat) + factor(age4) +
+                  factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race),
+                design = fema.svy,
+                family = binomial(link = "logit"))
+getOR(dep3.ltw)
+
+dep3.cow <- svyglm(depressionBinary ~ consid + factor(BMIcat) + factor(age4) +
+                   factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race), 
+                design = fema.svy,
+                family = binomial(link = "logit"))
+getOR(dep3.cow)
+
+dep3.daw <- svyglm(depressionBinary ~ doingWt + factor(BMIcat) + factor(age4) +
+                  factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race),
+                design = fema.svy,
+                family = binomial(link = "logit"))
+getOR2(dep3.daw)
+
+```
+
+
+
+##Smoking
+```{r, echo=FALSE, results = 'asis'}
+#unadjusted
+smk1.ltw <- multinom(smkStat ~ relevel(factor(likeTo), ref = 3),
+                     data = fema.svy$variables)
+smk1.daw <- multinom(smkStat ~ doingWt,
+                     data = fema.svy$variables)
+smk1.cow <- multinom(smkStat ~ consid,
+                     data = fema.svy$variables)
+
+#adjust for BMI category
+smk2.ltw <- multinom(smkStat ~ relevel(factor(likeTo), ref = 3) + factor(BMIcat),
+                     data = fema.svy$variables)
+smk2.daw <- multinom(smkStat ~ doingWt + factor(BMIcat),
+                     data = fema.svy$variables)
+smk2.cow <- multinom(smkStat ~ consid + factor(BMIcat),
+                     data = fema.svy$variables)
+
+#other adjustments
+smk3.ltw <- multinom(smkStat ~ relevel(factor(likeTo), ref = 3)+ factor(BMIcat) + factor(age4) + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9,
+                     data = fema.svy$variables)
+smk3.daw <- multinom(smkStat ~ doingWt + factor(BMIcat) + factor(age4)  + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9,
+                     data = fema.svy$variables)
+smk3.cow <- multinom(smkStat ~ consid + factor(BMIcat) + factor(age4)  + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9,
+                     data = fema.svy$variables)
+
+
+s1c <- tidy(smk1.cow, conf.int = T, exponentiate = TRUE)
+s1l <- tidy(smk1.ltw, conf.int = T, exponentiate = TRUE)
+s1d <- tidy(smk1.daw, conf.int = T, exponentiate = TRUE)
+
+s2c <- tidy(smk2.cow, conf.int = T, exponentiate = TRUE)
+s2l <- tidy(smk2.ltw, conf.int = T, exponentiate = TRUE)
+s2d <- tidy(smk2.daw, conf.int = T, exponentiate = TRUE)
+
+s3c <- tidy(smk3.cow, conf.int = T, exponentiate = TRUE)
+s3l <- tidy(smk3.ltw, conf.int = T, exponentiate = TRUE)
+s3d <- tidy(smk3.daw, conf.int = T, exponentiate = TRUE)
+
+
+
+knitr::kable(s1c)
+knitr::kable(s2c)
+knitr::kable(s3c)
+
+knitr::kable(s1l)
+knitr::kable(s2l)
+knitr::kable(s3l)
+
+knitr::kable(s1d)
+knitr::kable(s2d)
+knitr::kable(s3d)
+
+
+
+```
+
+
+
+```{r}
+
+
+#unadjusted odds for depression
+dep1.ltw <- svyglm(depressionBinary ~ likeTo, #ref = same
+                design = male.svy,
+                family = binomial(link = "logit"))
+summary(dep1.ltw)
+getOR(dep1.ltw)
+
+dep1.cow <- svyglm(depressionBinary ~ consid, #ref = about right
+                design = male.svy,
+                family = binomial(link = "logit"))
+getOR(dep1.cow)
+
+dep1.daw <- svyglm(depressionBinary ~ doingWt, #ref = not doing anything
+                design = male.svy,
+                family = binomial(link = "logit"))
+
+getOR2(dep1.daw)
+
+
+```
+
+```{r}
+
+################################################################################################
+#add in BMI category
+dep2.ltw <- svyglm(depressionBinary ~ likeTo + factor(BMIcat), 
+                design = male.svy,
+                family = binomial(link = "logit"))
+getOR(dep2.ltw)
+
+dep2.cow <- svyglm(depressionBinary ~ consid + factor(BMIcat), 
+                design = male.svy,
+                family = binomial(link = "logit"))
+getOR(dep2.cow)
+
+dep2.daw <- svyglm(depressionBinary ~ doingWt + factor(BMIcat), 
+                design = male.svy,
+                family = binomial(link = "logit"))
+getOR2(dep2.daw)
+
+
+
+```
+
+
+```{r}
+##################################################################################################
+#add in other potential confounders
+dep3.ltw <- svyglm(depressionBinary ~ likeTo + factor(BMIcat) + factor(age4) +
+                  factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race),
+                design = male.svy,
+                family = binomial(link = "logit"))
+getOR(dep3.ltw)
+
+dep3.cow <- svyglm(depressionBinary ~ consid + factor(BMIcat) + factor(age4) +
+                   factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race), 
+                design = male.svy,
+                family = binomial(link = "logit"))
+getOR(dep3.cow)
+
+dep3.daw <- svyglm(depressionBinary ~ doingWt + factor(BMIcat) + factor(age4) +
+                  factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race),
+                design = male.svy,
+                family = binomial(link = "logit"))
+getOR2(dep3.daw)
+
+```
+
+```{r}
+
+#unadjusted
+smk1.ltw <- multinom(smkStat ~ relevel(factor(likeTo), ref = 3),
+                     data = male.svy$variables)
+smk1.daw <- multinom(smkStat ~ doingWt,
+                     data = male.svy$variables)
+smk1.cow <- multinom(smkStat ~ consid,
+                     data = male.svy$variables)
+
+#adjust for BMI category
+smk2.ltw <- multinom(smkStat ~ relevel(factor(likeTo), ref = 3) + factor(BMIcat),
+                     data = male.svy$variables)
+smk2.daw <- multinom(smkStat ~ doingWt + factor(BMIcat),
+                     data = male.svy$variables)
+smk2.cow <- multinom(smkStat ~ consid + factor(BMIcat),
+                     data = male.svy$variables)
+
+#other adjustments
+smk3.ltw <- multinom(smkStat ~ relevel(factor(likeTo), ref = 3)+ factor(BMIcat) + factor(age4) + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9,
+                     data = male.svy$variables)
+smk3.daw <- multinom(smkStat ~ doingWt + factor(BMIcat) + factor(age4)  + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9,
+                     data = male.svy$variables)
+smk3.cow <- multinom(smkStat ~ consid + factor(BMIcat) + factor(age4)  + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9,
+                     data = male.svy$variables)
+
+
+s1c <- tidy(smk1.cow, conf.int = T, exponentiate = TRUE)
+s1l <- tidy(smk1.ltw, conf.int = T, exponentiate = TRUE)
+s1d <- tidy(smk1.daw, conf.int = T, exponentiate = TRUE)
+
+s2c <- tidy(smk2.cow, conf.int = T, exponentiate = TRUE)
+s2l <- tidy(smk2.ltw, conf.int = T, exponentiate = TRUE)
+s2d <- tidy(smk2.daw, conf.int = T, exponentiate = TRUE)
+
+s3c <- tidy(smk3.cow, conf.int = T, exponentiate = TRUE)
+s3l <- tidy(smk3.ltw, conf.int = T, exponentiate = TRUE)
+s3d <- tidy(smk3.daw, conf.int = T, exponentiate = TRUE)
+
+s1c %>%
+  select(estimate, conf.low, conf.high) %>%
+  knitr::kable()
+s2c %>%
+  select(estimate, conf.low, conf.high) %>%
+  knitr::kable()
+s3c %>%
+  filter(term == "considtoo big" | term == "considtoo thin") %>%
+  select(estimate, conf.low, conf.high) %>%
+  knitr::kable()
+
+s1l %>%
+  filter(term == "relevel(factor(likeTo), ref = 3)like to weigh less" | term == "relevel(factor(likeTo), ref = 3)like to weigh more") %>%
+  select(estimate, conf.low, conf.high) %>%
+  knitr::kable()
+s2l %>%
+  filter(term == "relevel(factor(likeTo), ref = 3)like to weigh less" | term == "relevel(factor(likeTo), ref = 3)like to weigh more") %>%
+  select(estimate, conf.low, conf.high) %>%
+  knitr::kable()
+s3l %>%
+  filter(term == "relevel(factor(likeTo), ref = 3)like to weigh less" | term == "relevel(factor(likeTo), ref = 3)like to weigh more") %>%
+  select(estimate, conf.low, conf.high) %>%
+  knitr::kable()
+
+
+s1d %>%
+  filter(grepl(pattern = "doingWt", x = term)) %>%
+  select(estimate, conf.low, conf.high) %>%
+  knitr::kable()
+s2d %>%
+  filter(grepl(pattern = "doingWt", x = term)) %>%
+  select(estimate, conf.low, conf.high) %>%
+  knitr::kable()
+s3d %>%
+  filter(grepl(pattern = "doingWt", x = term)) %>%
+  select(estimate, conf.low, conf.high) %>%
+  knitr::kable()
+
+
+```
+
+```{r}
+
+#Marijuana Use
+dat <- dat %>%
+  mutate(mjever = ifelse(DUQ200 == 1, 1,
+                         ifelse(DUQ200 == 2, 0, NA)),
+         #never used also coded as 0 here
+         mjmonth = ifelse(is.na(mjever), NA,
+                          ifelse(mjever == 0, 0,
+                                 ifelse(is.na(DUQ211) & mjever == 1, 0,
+                                        ifelse(DUQ211 == TRUE, 1, NA)))),
+         mjoften = ifelse(mjever == 0, 0,
+                          ifelse(DUQ217 %in% c(1,2,3,4,5), DUQ217, NA)),
+         mjoften.cat = ifelse(mjoften %in% c(1,2), 1, #<wkly
+                              ifelse(mjoften %in% c(3,4), 2, #<daily
+                                     ifelse(mjoften == 5, 3, 0)))) #daily
+
+
+#crosstabs to check coding
+table(dat$mjever, dat$DUQ200, useNA = "ifany")
+table(dat$DUQ211, useNA = "ifany")
+table(dat$mjmonth, dat$mjever)
+
+#for some reason, the data doesn't have the categories needed to construct
+#the ordinal categories of how often used. Will instead used the best measure
+#used it at least monthly for a year
+
+#instead, making another ordinal category to check:
+#never users, non-regular users, and regular users
+dat <- dat %>%
+  mutate(mjord = ifelse(mjever == 0, 0,
+                        ifelse(mjmonth == 0, 1,
+                               ifelse(mjmonth == 1, 2, NA))))
+
+#check coding
+table(dat$mjord, dat$mjmonth)
+
+
+#update the svy design objects
+rm(male.svy)
+rm(fema.svy)
+rm(svy)
+
+
+#set up survey design
+svy <- svydesign(id = ~SDMVPSU.x, 
+                 strata = ~SDMVSTRA.x, 
+                 weights = ~WTMEC6YR, 
+                 nest = TRUE, 
+                 data = dat)
+
+
+#for subpop (male and female)
+male.svy <- subset(svy, Male == 1)
+fema.svy <- subset(svy, Male == 0)
+
+
+```
+
+
+```{r}
+#look at MJ ordinal first
+mjl1 <- svyolr(factor(mjord, ordered = TRUE) ~ relevel(factor(likeTo), ref = 3), design = fema.svy)
+summary(mjl1)
+
+cbind(exp(mjl1$coefficients), exp(confint(mjl1)))
+
+
+mjc1 <- svyolr(factor(mjord, ordered = TRUE) ~ consid, design = fema.svy)
+summary(mjc1)
+
+cbind(exp(mjc1$coefficients), exp(confint(mjc1)))
+
+mjd1 <- svyolr(factor(mjord, ordered = TRUE) ~ doingWt, design = fema.svy)
+summary(mjd1)
+
+cbind(exp(mjd1$coefficients), exp(confint(mjd1)))
+```
+
+```{r}
+mjl2 <- svyolr(factor(mjord, ordered = TRUE) ~ relevel(factor(likeTo), ref = 3) +
+                 factor(BMIcat), design = fema.svy)
+summary(mjl2)
+
+cbind(exp(mjl2$coefficients), exp(confint(mjl2)))
+
+
+mjc2 <- svyolr(factor(mjord, ordered = TRUE) ~ consid + factor(BMIcat), design = fema.svy)
+summary(mjc2)
+
+cbind(exp(mjc2$coefficients), exp(confint(mjc2)))
+
+mjd2 <- svyolr(factor(mjord, ordered = TRUE) ~ doingWt + factor(BMIcat), design = fema.svy)
+summary(mjd2)
+
+cbind(exp(mjd2$coefficients), exp(confint(mjd2)))
+```
+
+
+```{r}
+mjl3 <- svyolr(factor(mjord, ordered = TRUE) ~ relevel(factor(likeTo), ref = 3) +
+                 factor(BMIcat) + factor(age4)  + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9, design = fema.svy)
+
+cbind(exp(mjl3$coefficients), exp(confint(mjl3)))
+
+
+mjc3 <- svyolr(factor(mjord, ordered = TRUE) ~ consid + factor(BMIcat)+ factor(BMIcat) + factor(age4)  + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9, design = fema.svy)
+
+cbind(exp(mjc3$coefficients), exp(confint(mjc3)))
+
+mjd3 <- svyolr(factor(mjord, ordered = TRUE) ~ doingWt + factor(BMIcat)+ factor(BMIcat) + factor(age4)  + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9, design = fema.svy)
+
+cbind(exp(mjd3$coefficients), exp(confint(mjd3)))
+```
+
+```{r}
+mjnl1 <- svyglm(mjever ~ relevel(factor(likeTo), ref = 3),
+                design = fema.svy)
+cbind(exp(mjnl1$coefficients), exp(confint(mjnl1)))
+
+mjnc1 <- svyglm(mjever ~ consid,
+                design = fema.svy)
+cbind(exp(mjnc1$coefficients), exp(confint(mjnc1)))
+
+mjnd1 <- svyglm(mjever ~ doingWt,
+                design = fema.svy)
+cbind(exp(mjnd1$coefficients), exp(confint(mjnd1)))
+```
+
+
+```{r}
+
+mjnl1 <- svyglm(mjever ~ relevel(factor(likeTo), ref = 3) + factor(BMIcat),
+                design = fema.svy)
+cbind(exp(mjnl1$coefficients), exp(confint(mjnl1)))
+
+mjnc1 <- svyglm(mjever ~ consid + factor(BMIcat),
+                design = fema.svy)
+cbind(exp(mjnc1$coefficients), exp(confint(mjnc1)))
+
+mjnd1 <- svyglm(mjever ~ doingWt + factor(BMIcat),
+                design = fema.svy)
+cbind(exp(mjnd1$coefficients), exp(confint(mjnd1)))
+
+```
+
+```{r}
+mjnl1 <- svyglm(mjever ~ relevel(factor(likeTo), ref = 3)+ factor(age4)  + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9 + factor(BMIcat),
+                design = fema.svy)
+cbind(exp(mjnl1$coefficients), exp(confint(mjnl1)))
+
+mjnc1 <- svyglm(mjever ~ consid+ factor(age4)  + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9 + factor(BMIcat),
+                design = fema.svy)
+cbind(exp(mjnc1$coefficients), exp(confint(mjnc1)))
+
+mjnd1 <- svyglm(mjever ~ doingWt+ factor(age4)  + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9 + factor(BMIcat),
+                design = fema.svy)
+cbind(exp(mjnd1$coefficients), exp(confint(mjnd1)))
+```
+
+
+```{r}
+#look at MJ ordinal first
+mjl1 <- svyolr(factor(mjord, ordered = TRUE) ~ relevel(factor(likeTo), ref = 3), design = male.svy)
+
+cbind(exp(mjl1$coefficients), exp(confint(mjl1)))
+
+mjc1 <- svyolr(factor(mjord, ordered = TRUE) ~ consid, design = male.svy)
+
+cbind(exp(mjc1$coefficients), exp(confint(mjc1)))
+
+mjd1 <- svyolr(factor(mjord, ordered = TRUE) ~ doingWt, design = male.svy)
+
+cbind(exp(mjd1$coefficients), exp(confint(mjd1)))
+```
+
+```{r}
+mjl2 <- svyolr(factor(mjord, ordered = TRUE) ~ relevel(factor(likeTo), ref = 3) +
+                 factor(BMIcat), design = male.svy)
+cbind(exp(mjl2$coefficients), exp(confint(mjl2)))
+
+
+mjc2 <- svyolr(factor(mjord, ordered = TRUE) ~ consid + factor(BMIcat), design = male.svy)
+
+cbind(exp(mjc2$coefficients), exp(confint(mjc2)))
+
+mjd2 <- svyolr(factor(mjord, ordered = TRUE) ~ doingWt + factor(BMIcat), design = male.svy)
+
+cbind(exp(mjd2$coefficients), exp(confint(mjd2)))
+```
+
+
+```{r}
+mjl3 <- svyolr(factor(mjord, ordered = TRUE) ~ relevel(factor(likeTo), ref = 3) +
+                 factor(BMIcat) + factor(age4)  + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9, design = male.svy)
+
+cbind(exp(mjl3$coefficients), exp(confint(mjl3)))
+
+
+mjc3 <- svyolr(factor(mjord, ordered = TRUE) ~ consid + factor(BMIcat)+ factor(BMIcat) + factor(age4)  + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9, design = male.svy)
+
+cbind(exp(mjc3$coefficients), exp(confint(mjc3)))
+
+mjd3 <- svyolr(factor(mjord, ordered = TRUE) ~ doingWt + factor(BMIcat)+ factor(BMIcat) + factor(age4)  + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9, design = male.svy)
+
+cbind(exp(mjd3$coefficients), exp(confint(mjd3)))
+```
+
+
+
+
+```{r}
+mjnc <- svyglm(mjever ~ relevel(factor(likeTo), ref = 3),
+               design = male.svy)
+cbind(exp(mjnc$coefficients), exp(confint(mjnc)))
+
+mjnl <- svyglm(mjever ~ consid,
+               design = male.svy)
+cbind(exp(mjnl$coefficients), exp(confint(mjnl)))
+
+mjnd <- svyglm(mjever ~ doingWt,
+               design = male.svy)
+cbind(exp(mjnd$coefficients), exp(confint(mjnd)))
+```
+
+```{r}
+mjnc <- svyglm(mjever ~ relevel(factor(likeTo), ref = 3) + factor(BMIcat),
+               design = male.svy)
+cbind(exp(mjnc$coefficients), exp(confint(mjnc)))
+
+mjnl <- svyglm(mjever ~ consid + factor(BMIcat),
+               design = male.svy)
+cbind(exp(mjnl$coefficients), exp(confint(mjnl)))
+
+mjnd <- svyglm(mjever ~ doingWt + factor(BMIcat),
+               design = male.svy)
+cbind(exp(mjnd$coefficients), exp(confint(mjnd)))
+
+```
+
+
+```{r}
+mjnc <- svyglm(mjever ~ relevel(factor(likeTo), ref = 3)+ factor(age4)  + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9 + factor(BMIcat),
+               design = male.svy)
+cbind(exp(mjnc$coefficients), exp(confint(mjnc)))
+
+mjnl <- svyglm(mjever ~ consid+ factor(age4)  + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9 + factor(BMIcat),
+               design = male.svy)
+cbind(exp(mjnl$coefficients), exp(confint(mjnl)))
+
+mjnd <- svyglm(mjever ~ doingWt+ factor(age4)  + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9 + factor(BMIcat),
+               design = male.svy)
+cbind(exp(mjnd$coefficients), exp(confint(mjnd)))
+
+```
+
