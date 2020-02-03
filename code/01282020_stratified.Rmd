@@ -289,7 +289,6 @@ knitr::kable(s2d)
 knitr::kable(s3d)
 
 
-
 ```
 
 
