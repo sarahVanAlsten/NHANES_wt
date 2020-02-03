@@ -405,41 +405,41 @@ s3l <- tidy(smk3.ltw, conf.int = T, exponentiate = TRUE)
 s3d <- tidy(smk3.daw, conf.int = T, exponentiate = TRUE)
 
 s1c %>%
-  select(estimate, conf.low, conf.high) %>%
+  dplyr::select(estimate, conf.low, conf.high) %>%
   knitr::kable()
 s2c %>%
-  select(estimate, conf.low, conf.high) %>%
+  dplyr::select(estimate, conf.low, conf.high) %>%
   knitr::kable()
 s3c %>%
   filter(term == "considtoo big" | term == "considtoo thin") %>%
-  select(estimate, conf.low, conf.high) %>%
+  dplyr::select(estimate, conf.low, conf.high) %>%
   knitr::kable()
 
 s1l %>%
   filter(term == "relevel(factor(likeTo), ref = 3)like to weigh less" | term == "relevel(factor(likeTo), ref = 3)like to weigh more") %>%
-  select(estimate, conf.low, conf.high) %>%
+  dplyr::select(estimate, conf.low, conf.high) %>%
   knitr::kable()
 s2l %>%
   filter(term == "relevel(factor(likeTo), ref = 3)like to weigh less" | term == "relevel(factor(likeTo), ref = 3)like to weigh more") %>%
-  select(estimate, conf.low, conf.high) %>%
+  dplyr::select(estimate, conf.low, conf.high) %>%
   knitr::kable()
 s3l %>%
   filter(term == "relevel(factor(likeTo), ref = 3)like to weigh less" | term == "relevel(factor(likeTo), ref = 3)like to weigh more") %>%
-  select(estimate, conf.low, conf.high) %>%
+  dplyr::select(estimate, conf.low, conf.high) %>%
   knitr::kable()
 
 
 s1d %>%
   filter(grepl(pattern = "doingWt", x = term)) %>%
-  select(estimate, conf.low, conf.high) %>%
+  dplyr::select(estimate, conf.low, conf.high) %>%
   knitr::kable()
 s2d %>%
   filter(grepl(pattern = "doingWt", x = term)) %>%
-  select(estimate, conf.low, conf.high) %>%
+  dplyr::select(estimate, conf.low, conf.high) %>%
   knitr::kable()
 s3d %>%
   filter(grepl(pattern = "doingWt", x = term)) %>%
-  select(estimate, conf.low, conf.high) %>%
+  dplyr::select(estimate, conf.low, conf.high) %>%
   knitr::kable()
 
 
@@ -700,4 +700,37 @@ mjnd <- svyglm(mjever ~ doingWt+ factor(age4)  + factor(maritalstatus) + factor(
 cbind(exp(mjnd$coefficients), exp(confint(mjnd)))
 
 ```
+
+
+
+
+```{r}
+### test whether estimates for consider wt (too lg vs too thin) among males in dep model
+### are equivalent.
+male.svy$variables$consid <- as.factor(male.svy$variables$consid)
+
+dep3.cow <- svyglm(depressionBinary ~ consid + factor(BMIcat) + factor(age4) +
+                   factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race), 
+                design = male.svy,
+                family = binomial(link = "logit"))
+
+contr <- rbind("considtoo big - considtoo thin" = c(0, 1, -1))
+
+summary(glht(dep3.cow, linfct = mcp(consid = contr)))
+
+
+##test whether levels of like to weigh are equivalent for males in mj use (never/ever)
+male.svy$variables$likeTo <- relevel(factor(male.svy$variables$likeTo), ref = 3)
+mjnc <- svyglm(mjever ~ likeTo+ factor(age4)  + factor(maritalstatus) + factor(edu) + factor(Income) + factor(Race) + phq9 + factor(BMIcat),
+               design = male.svy)
+summary(mjnc)
+
+contr <- rbind("likeTolike to weigh more - likeTolike to weigh less" = c(0, 1, -1))
+
+summary(glht(mjnc, linfct = mcp(likeTo = contr)))
+
+
+
+```
+
 
