@@ -103,16 +103,16 @@ loseBxFSPerc <- dat %>%
 
 loseBxPercep <- dat %>%
   filter(lastYrLose == 1) %>%
-  drop_na(consid)%>%
+  drop_na(ConsiderWt)%>%
   #group by Race and Sex %>%
-  group_by(Race, Male, consid) %>%
+  group_by(Race, Male, ConsiderWt) %>%
   summarise_at(vars(contains("lastYr")), .funs = ~(sum(. == 1, na.rm = T)))
 
 loseBxPercepPerc <- dat %>%
   filter(lastYrLose == 1) %>%
-  drop_na(consid)%>%
+  drop_na(ConsiderWt)%>%
   #group by Race and Sex %>%
-  group_by(Race, Male, consid) %>%
+  group_by(Race, Male, ConsiderWt) %>%
   summarise_at(vars(contains("lastYr")), .funs = ~(sum(. == 1, na.rm = T)/
                                                      (sum(. == 0, na.rm = T)+sum(. == 1, na.rm=T))))
 
@@ -120,10 +120,10 @@ loseBxPercepPerc <- dat %>%
 
 loseBxPercepPerc2 <- dat %>%
   filter(lastYrLose == 1) %>%
-  filter(!consid=="too thin") %>%
-  drop_na(consid)%>%
+  filter(!ConsiderWt=="too thin") %>%
+  drop_na(ConsiderWt)%>%
   #group by Race and Sex %>%
-  group_by(Race, Male, consid) %>%
+  group_by(Race, Male, ConsiderWt) %>%
   summarise_at(vars(contains("lastYr")), .funs = ~(sum(. == 1, na.rm = T)/
                                                      (sum(. == 0, na.rm = T)+sum(. == 1, na.rm=T))))
 
@@ -177,6 +177,8 @@ dat$ngAteLessSweet <- ngRecode("WHD100S")
 dat$ngAteLessJunk <- ngRecode("WHD100T")
 
 table(dat$WHD100G, useNA = "ifany")
+table(dat$ngLowCal)
+
 #summarise the number of people doing various weight loss/ try not to gain behaviors
 ngBx <- dat %>%
   filter(tryNotGain== 1) %>%
@@ -197,34 +199,143 @@ ngBxPerc <- dat %>%
 #eveything that person did. See 1) how many letters are endorsed and 2) what 'patters' just
 #visually come up.
 
-dat$all_not_gain <- ""
 
-ngAllBx<- function(data){
-  
-  
-  #create frame with letters and numbers corresponding
-  frame.my <- as.data.frame(cbind(paste0("WHD100", LETTERS[1:20]),
-                                  c(10, 11, 12, 13, 14, 15, 16, 17,
-                                    31, 32, 33, 33, 34, #i j k l m
-                                    30, 41, 42, 43, 44, 45, 46))) #N o
-  
-#name the frame
-  names(frame.my) <- c("V1", "match")
-  
-  #iterate over each letter combo, and each nhanes row
-  for (i in 1:nrow(frame.my)){
-    data$all_not_gain <- 
-      ifelse(data[,names(data) == frame.my$V1[i]] == frame.my$match[i], #if number matches that letter's code
-       paste0(data$all_not_gain, frame.my$V1[i]),
-       data$all_not_gain) #paste in to growing list
+dat$all_lose_bx <-
+  dat %>%
+  select_at(vars(contains("WHD080", ignore.case = F))) %>%
+  mutate_all(.funs = as.character)%>%
+  unite("all_not_gain", WHD080A:WHD080U, na.rm = T) %>%
+  mutate_all(.funs = ~(str_replace_all(., "10", "A"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "11", "B"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "12", "C"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "13", "D"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "14", "E"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "15", "F"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "16", "G"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "17", "H"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "31", "I"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "32", "J"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "33", "K"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "40", "L"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "34", "M"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "30", "N"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "41", "O"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "42", "P"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "43", "Q"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "44", "R"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "45", "S"))) %>%
+  mutate_all(.funs = ~(str_replace_all(., "46", "T"))) 
+
+
+#make it a vector, not a data frame
+dat$all_lose_bx <- dat$all_lose_bx$all_not_gain
+
+#replace the underscores
+dat$all_lose_bx <- str_remove_all(dat$all_lose_bx, "_")
+
+#1st: how many unique combinations are there?
+length(table(dat$all_lose_bx)) : 1943
+
+#How many individually have each of the letters A:T?
+dat %>%
+  select(all_lose_bx) %>%
+  summarise(a = sum(grepl("A", all_lose_bx)),
+            b = sum(grepl("B", all_lose_bx)),
+            c = sum(grepl("C", all_lose_bx)),
+            d = sum(grepl("E", all_lose_bx)),
+            s = sum(grepl("S", all_lose_bx)),
+            t = sum(grepl("T", all_lose_bx)),
+            e = sum(grepl("E", all_lose_bx)),
+            f = sum(grepl("F", all_lose_bx)),
+            g = sum(grepl("G", all_lose_bx)),
+            h = sum(grepl("H", all_lose_bx)),
+            i = sum(grepl("I", all_lose_bx)),
+            j = sum(grepl("J", all_lose_bx)),
+            k = sum(grepl("K", all_lose_bx)),
+            l = sum(grepl("L", all_lose_bx)),
+            m = sum(grepl("M", all_lose_bx)),
+            n = sum(grepl("N", all_lose_bx)),
+            o = sum(grepl("O", all_lose_bx)),
+            p = sum(grepl("P", all_lose_bx)),
+            q = sum(grepl("Q", all_lose_bx)),
+            r = sum(grepl("R", all_lose_bx)))
+
+
+#How many coccurence of 2 given letters
+lookForVec <- c(NULL)
+
+for (j in 1:20){
+  letj <- LETTERS[j]
+  for (k in (j+1):20){
+    letk <- LETTERS[k]
+    lookFor <- paste0(letj, letk)
+    lookForVec <- append(lookForVec, lookFor)
   }
-
-  return(data)
-
 }
 
-test.dat <- ngAllBx(dat)
-table(test.dat$all_not_gain)
+countLookFor <- c(NULL)
+for (i in 1:length(lookForVec)){
+  countLookFor <- append(countLookFor, sum(grepl(pattern = lookForVec[i], x = dat$all_lose_bx)))
+}
+
+twoBx <- as.data.frame(cbind(lookForVec, countLookFor))
+twoBx$countLookFor <- as.numeric(as.character(twoBx$countLookFor))
+#CD, BC, AD, AB, and DM are all very common
+#AD = 1011, ate less + exercise
+##################################################################
+#how many cocurrences of 3 given letters?
+lookForVec <- c(NULL)
+for (j in 1:20){
+  letj <- LETTERS[j]
+  for (k in (j+1):20){
+    letk <- LETTERS[k]
+    for(l in (k+1):20){
+      letl <- LETTERS[l]
+      lookFor <- paste0(letj, letk, letl)
+      lookForVec <- append(lookForVec, lookFor)
+    }
+  }
+}
+
+countLookFor <- c(NULL)
+for (i in 1:length(lookForVec)){
+  countLookFor <- append(countLookFor, sum(grepl(pattern = lookForVec[i], x = dat$all_lose_bx)))
+}
+
+threeBx <- as.data.frame(cbind(lookForVec, countLookFor))
+threeBx$countLookFor <- as.numeric(as.character(threeBx$countLookFor))
+#ABC, BCD, QRS, RST, CDM all have more than 400
+#QRS = fruitveg, change diet, and less sweet
+#ABC = ate less, lowcal, less fat
+#BCD = low cal, less fat, and exercise
+#CDM = less fat, exercise, h20
 
 
-table(dat$tryNotGain)
+####################################################################
+#how many coccurences of 4 letters?
+##################################################################
+#how many cocurrences of 3 given letters?
+lookForVec <- c(NULL)
+for (j in 1:20){
+  letj <- LETTERS[j]
+  for (k in (j+1):20){
+    letk <- LETTERS[k]
+    for(l in (k+1):20){
+      letl <- LETTERS[l]
+      for (m in (l+1):20){
+        letm <- LETTERS[m]
+        lookFor <- paste0(letj, letk, letl, letm)
+        lookForVec <- append(lookForVec, lookFor)
+      }
+    }
+  }
+}
+
+countLookFor <- c(NULL)
+for (i in 1:length(lookForVec)){
+  countLookFor <- append(countLookFor, sum(grepl(pattern = lookForVec[i], x = dat$all_lose_bx)))
+}
+
+fourBx <- as.data.frame(cbind(lookForVec, countLookFor))
+fourBx$countLookFor <- as.numeric(as.character(fourBx$countLookFor))
+#ABCD and QRST

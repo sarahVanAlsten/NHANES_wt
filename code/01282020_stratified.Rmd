@@ -288,7 +288,7 @@ knitr::kable(s1d)
 knitr::kable(s2d)
 knitr::kable(s3d)
 
-
+version
 ```
 
 
