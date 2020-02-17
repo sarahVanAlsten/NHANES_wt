@@ -501,7 +501,7 @@ mfit <- withReplicates(bootMale,
                                            weights= .weights,
                                            trace=F))))
 
-svymres(mfit)
+svymres2(mfit)
 
 #female
 ffit <- withReplicates(bootFemale, 
@@ -509,4 +509,52 @@ ffit <- withReplicates(bootFemale,
                                              factor(age4)+ factor(edu) + factor(Race),
                                            weights= .weights,
                                            trace=F))))
-svymres(ffit)
+svymres2(ffit)
+##################################################################################
+#How they Consider Weight
+#male
+mfit <- withReplicates(bootMale, 
+                       quote(coef(multinom(consid ~ fsWithHunger,
+                                           weights= .weights,
+                                           trace=F))))
+
+svymres2(mfit)
+
+#female
+ffit <- withReplicates(bootFemale, 
+                       quote(coef(multinom(consid ~ fsWithHunger,
+                                           weights= .weights,
+                                           trace=F))))
+svymres2(ffit)
+#########################################################
+#BMI adjusted
+mfit <- withReplicates(bootMale, 
+                       quote(coef(multinom(consid ~ fsWithHunger + factor(BMIcat),
+                                           weights= .weights,
+                                           trace=F))))
+
+svymres2(mfit)
+
+#female
+ffit <- withReplicates(bootFemale, 
+                       quote(coef(multinom(consid ~ fsWithHunger + factor(BMIcat),
+                                           weights= .weights,
+                                           trace=F))))
+svymres2(ffit)
+############################################
+#Fully Adjusted
+mfit <- withReplicates(bootMale, 
+                       quote(coef(multinom(consid ~ fsWithHunger + factor(BMIcat) +
+                                             factor(age4)+ factor(edu) + factor(Race),
+                                           weights= .weights,
+                                           trace=F))))
+
+svymres2(mfit)
+
+#female
+ffit <- withReplicates(bootFemale, 
+                       quote(coef(multinom(consid ~ fsWithHunger + factor(BMIcat) +
+                                             factor(age4)+ factor(edu) + factor(Race),
+                                           weights= .weights,
+                                           trace=F))))
+svymres2(ffit)
