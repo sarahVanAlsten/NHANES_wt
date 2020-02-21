@@ -79,6 +79,15 @@ loseBxFS <- dat %>%
   group_by(Race, Male, FSany) %>%
   summarise_at(vars(contains("lastYr")), .funs = ~(sum(. == 1, na.rm = T)))
 
+#keep it separated by fs with hunger
+loseBxFS <- dat %>%
+  filter(lastYrLose == 1) %>%
+  #group by Race and Sex %>%
+  drop_na(fsWithHunger) %>%
+  mutate(FSany = ifelse(fsWithHunger %in%c (1,2), 1, ifelse(fsWithHunger == 0, 0, NA)))%>%
+  group_by(Race, Male, fsWithHunger) %>%
+  summarise_at(vars(contains("lastYr")), .funs = ~(sum(. == 1, na.rm = T)))
+
 #also get %
 loseBxPerc <- dat %>%
   filter(lastYrLose == 1) %>%
@@ -96,6 +105,73 @@ loseBxFSPerc <- dat %>%
   summarise_at(vars(contains("lastYr")), .funs = ~(sum(. == 1, na.rm = T)/
                                                     (sum(. == 0, na.rm = T)+sum(. == 1, na.rm=T))))
 
+
+#keep percents separated by fs with hunger
+loseBxFSPerc <- dat %>%
+  filter(lastYrLose == 1) %>%
+  #group by Race and Sex %>%
+  drop_na(fsWithHunger) %>%
+  mutate(FSany = ifelse(fsWithHunger %in%c (1,2), 1, ifelse(fsWithHunger == 0, 0, NA)))%>%
+  group_by(Race, Male, fsWithHunger) %>%
+  summarise_at(vars(contains("lastYr")), .funs = ~(sum(. == 1, na.rm = T)/
+                                                     (sum(. == 0, na.rm = T)+sum(. == 1, na.rm=T))))
+
+
+#bind together the N and (%)
+loseBxFs.all <- loseBxFS %>% full_join(loseBxFSPerc, by = c("Male", "fsWithHunger", "Race"))
+
+
+#make it easier to get N(%) in all of them
+loseBxFs.all <- loseBxFs.all %>%
+  mutate(lastYrJoinProgram.full = paste0(lastYrJoinProgram.x, " (",
+                                   sprintf((lastYrJoinProgram.y*100), fmt = "%.1f"), ")"),
+         lastYrLiquidDiet.full = paste0(lastYrLiquidDiet.x, " (",
+                                   sprintf((lastYrLiquidDiet.y*100), fmt = "%.1f"), ")"),
+         lastYrDietPill.full = paste0(lastYrDietPill.x, " (",
+                                   sprintf((lastYrDietPill.y*100), fmt = "%.1f"), ")"),
+         lastYrOthRx.full = paste0(lastYrOthRx.x, " (",
+                                   sprintf((lastYrOthRx.y*100), fmt = "%.1f"), ")"),
+         lastYrOther.full = paste0(lastYrOther.x, " (",
+                                   sprintf((lastYrOther.y*100), fmt = "%.1f"), ")"),
+         lastYrLaxVom.full = paste0(lastYrLaxVom.x, " (",
+                                     sprintf((lastYrLaxVom.y*100), fmt = "%.1f"), ")"),
+         lastYrDietFood.full = paste0(lastYrDietFood.x, " (",
+                                     sprintf((lastYrDietFood.y*100), fmt = "%.1f"), ")"),
+         lastYrMoreH20.full = paste0(lastYrMoreH20.x, " (",
+                                     sprintf((lastYrMoreH20.y*100), fmt = "%.1f"), ")"),
+         lastYrAteLess.full = paste0(lastYrAteLess.x, " (",
+                                     sprintf((lastYrAteLess.y*100), fmt = "%.1f"), ")"),
+         lastYrSwitchFood.full = paste0(lastYrSwitchFood.x, " (",
+                                     sprintf((lastYrSwitchFood.y*100), fmt = "%.1f"), ")"),
+         lastYrLessFat.full = paste0(lastYrLessFat.x, " (",
+                                     sprintf((lastYrLessFat.y*100), fmt = "%.1f"), ")"),
+         lastYrExercise.full = paste0(lastYrExercise.x, " (",
+                                     sprintf((lastYrExercise.y*100), fmt = "%.1f"), ")"),
+         lastYrSkipMeal.full = paste0(lastYrSkipMeal.x, " (",
+                                     sprintf((lastYrSkipMeal.y*100), fmt = "%.1f"), ")"),
+         lastYrFruitVeg.full = paste0(lastYrFruitVeg.x, " (",
+                                     sprintf((lastYrFruitVeg.y*100), fmt = "%.1f"), ")"),
+         lastYrAteLessJunk.full = paste0(lastYrAteLessJunk.x, " (",
+                                     sprintf((lastYrAteLessJunk.y*100), fmt = "%.1f"), ")"),
+         lastYrAteLessSweet.full = paste0(lastYrAteLessSweet.x, " (",
+                                     sprintf((lastYrAteLessSweet.y*100), fmt = "%.1f"), ")"),
+         lastYrChangeDiet.full = paste0(lastYrChangeDiet.x, " (",
+                                     sprintf((lastYrChangeDiet.y*100), fmt = "%.1f"), ")"),
+         lastYrRestartSmoke.full = paste0(lastYrRestartSmoke.x, " (",
+                                     sprintf((lastYrRestartSmoke.y*100), fmt = "%.1f"), ")"),
+         lastYrLowCarb.full = paste0(lastYrLowCarb.x, " (",
+                                     sprintf((lastYrLowCarb.y*100), fmt = "%.1f"), ")"),
+         lastYrSpecDiet.full = paste0(lastYrSpecDiet.x, " (",
+                                     sprintf((lastYrSpecDiet.y*100), fmt = "%.1f"), ")"))
+
+#get just clean output
+clean.out <- loseBxFs.all %>%
+  select_at(vars(contains(".full")))
+
+clean.out$fs <- loseBxFs.all$fsWithHunger
+
+#write to csv
+write.csv(clean.out, "data\\lose_wt_bx.csv")
 
 ##############################################
 #how do the weight loss bx vary by weignt perception/like to

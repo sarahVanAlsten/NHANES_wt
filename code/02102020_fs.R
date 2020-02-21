@@ -558,3 +558,317 @@ ffit <- withReplicates(bootFemale,
                                            weights= .weights,
                                            trace=F))))
 svymres2(ffit)
+#############################################################
+dat <- dat %>%
+  mutate(foodInsec = ifelse(fsWithHunger %in% c(1,2), 1,
+                            ifelse(fsWithHunger == 0, 0, NA)))
+
+bootMale <-update(bootMale, foodInsec = ifelse(fsWithHunger %in% c(1,2), 1,
+                                               ifelse(fsWithHunger == 0, 0, NA)))
+
+bootFemale <-update(bootFemale, foodInsec = ifelse(fsWithHunger %in% c(1,2), 1,
+                                               ifelse(fsWithHunger == 0, 0, NA)))
+
+
+#run regressions
+
+svymresb <- function(mod){
+  #get the betas: nrow = # outcomes -1, ncol = #predictors (here 2 bc fswithhunger is 3 level dummy)
+  mfitcoef <- data.frame(matrix(attr(attr(mod, "var"), "means")[-1:-4],
+                                nrow=nrow(coef(mod)),
+                                ncol=ncol(coef(mod))-1,
+                                byrow=F))
+  #names(mfitcoef) <- c("fs_no_hunger", "fs_hunger")
+  rownames(mfitcoef) <- rownames(coef(mod))
+  
+  #odds ratios
+  round(exp(mfitcoef), 3)
+  
+  #get the covariance matrix for the betas : nrow and ncol = mfitcoef's nrow*(ncol +1)
+  vcov <- matrix(attr(mod, "var"), nrow=length(coef(mod)), length(coef(mod)))
+  
+  #get the z tests by using the coefficients and the standard errors (diag(vcov))
+  z <- as.vector(mfitcoef/sqrt(diag(vcov)[-1:-4]))
+  round(z, 2) #show Z values
+  
+  #p values
+  pvals <- round((1-pnorm(abs(as.matrix(z)),0,1))*2,4)
+  round(pvals, 3)
+  
+  #95% confidence intervals
+  se <- data.frame(matrix(sqrt(diag(vcov))[-1:-4], 
+                          nrow = nrow(coef(mod)), 
+                          ncol = ncol(coef(mod))-1, 
+                          byrow = F))
+  
+  mfitcoef <- cbind(mfitcoef, se)
+  
+  #at index of ncol is the first se we want
+  mfitcoef$fs_no_hunger_lower <- mfitcoef[,1] - (1.96*mfitcoef[, ncol(coef(mod))])
+  mfitcoef$fs_no_hunger_upper <- mfitcoef[,1] + (1.96*mfitcoef[,ncol(coef(mod))])
+  
+  #print out the OR and 95% CI
+  cat(noquote(paste0(sprintf(exp(mfitcoef[,1]), fmt = "%.3f"), " (",
+                     sprintf(exp(mfitcoef$fs_no_hunger_lower), fmt = "%.3f"), " - ",
+                     sprintf(exp(mfitcoef$fs_no_hunger_upper), fmt = "%.3f"), ")")), sep = "\n")
+  }
+
+#same thing when var has 3 levels (1 ref + 2 comparison)
+svymres2b <- function(mod){
+  #get the betas: nrow = # outcomes -1, ncol = #predictors (here 1 bc fs is 2 level dummy)
+  mfitcoef <- data.frame(matrix(attr(attr(mod, "var"), "means")[-1:-2],
+                                nrow=nrow(coef(mod)),
+                                ncol=ncol(coef(mod))-1,
+                                byrow=F))
+  #names(mfitcoef) <- c("fs_no_hunger", "fs_hunger")
+  rownames(mfitcoef) <- rownames(coef(mod))
+  
+  #odds ratios
+  round(exp(mfitcoef), 3)
+  
+  #get the covariance matrix for the betas : nrow and ncol = mfitcoef's nrow*(ncol +1)
+  vcov <- matrix(attr(mod, "var"), nrow=length(coef(mod)), length(coef(mod)))
+  
+  #get the z tests by using the coefficients and the standard errors (diag(vcov))
+  z <- as.vector(mfitcoef/sqrt(diag(vcov)[-1:-2]))
+  round(z, 2) #show Z values
+  
+  #p values
+  pvals <- round((1-pnorm(abs(as.matrix(z)),0,1))*2,4)
+  round(pvals, 3)
+  
+  #95% confidence intervals
+  se <- data.frame(matrix(sqrt(diag(vcov))[-1:-2], 
+                          nrow = nrow(coef(mod)), 
+                          ncol = ncol(coef(mod))-1, 
+                          byrow = F))
+  
+  mfitcoef <- cbind(mfitcoef, se)
+  
+  #at index of ncol is the first se we want
+  mfitcoef$fs_no_hunger_lower <- mfitcoef[,1] - (1.96*mfitcoef[, ncol(coef(mod))])
+  mfitcoef$fs_no_hunger_upper <- mfitcoef[,1] + (1.96*mfitcoef[,ncol(coef(mod))])
+ 
+  #print out the OR and 95% CI
+  cat(noquote(paste0(sprintf(exp(mfitcoef[,1]), fmt = "%.3f"), " (",
+                     sprintf(exp(mfitcoef$fs_no_hunger_lower), fmt = "%.3f"), " - ",
+                     sprintf(exp(mfitcoef$fs_no_hunger_upper), fmt = "%.3f"), ")")), sep = "\n")
+  
+}
+###################################################
+
+#Now I fit the models: warning this is screwy looking!!!
+#male
+mfit <- withReplicates(bootMale, 
+                       quote(coef(multinom(doingWt ~ foodInsec,
+                                           weights= .weights,
+                                           trace=F))))
+
+svymresb(mfit)
+
+#female
+ffit <- withReplicates(bootFemale, 
+                       quote(coef(multinom(doingWt ~ foodInsec,
+                                           weights= .weights,
+                                           trace=F))))
+svymresb(ffit)
+#########################################################
+#BMI adjusted
+mfit <- withReplicates(bootMale, 
+                       quote(coef(multinom(doingWt ~ foodInsec + factor(BMIcat),
+                                           weights= .weights,
+                                           trace=F))))
+
+svymresb(mfit)
+
+#female
+ffit <- withReplicates(bootFemale, 
+                       quote(coef(multinom(doingWt ~ foodInsec + factor(BMIcat),
+                                           weights= .weights,
+                                           trace=F))))
+svymresb(ffit)
+##################################################
+#what you would like to weigh
+#male
+mfit <- withReplicates(bootMale, 
+                       quote(coef(multinom(likeTo ~ foodInsec,
+                                           weights= .weights,
+                                           trace=F))))
+
+svymres2b(mfit)
+
+#female
+ffit <- withReplicates(bootFemale, 
+                       quote(coef(multinom(likeTo ~ foodInsec,
+                                           weights= .weights,
+                                           trace=F))))
+svymres2b(ffit)
+#########################################################
+#BMI adjusted
+mfit <- withReplicates(bootMale, 
+                       quote(coef(multinom(likeTo ~ foodInsec + factor(BMIcat),
+                                           weights= .weights,
+                                           trace=F))))
+
+svymres2b(mfit)
+
+#female
+ffit <- withReplicates(bootFemale, 
+                       quote(coef(multinom(likeTo ~ foodInsec + factor(BMIcat),
+                                           weights= .weights,
+                                           trace=F))))
+svymres2b(ffit)
+
+##################################################################################
+#How they Consider Weight
+#male
+mfit <- withReplicates(bootMale, 
+                       quote(coef(multinom(consid ~ foodInsec,
+                                           weights= .weights,
+                                           trace=F))))
+
+svymres2b(mfit)
+
+#female
+ffit <- withReplicates(bootFemale, 
+                       quote(coef(multinom(consid ~ foodInsec,
+                                           weights= .weights,
+                                           trace=F))))
+svymres2b(ffit)
+#########################################################
+#BMI adjusted
+mfit <- withReplicates(bootMale, 
+                       quote(coef(multinom(consid ~ foodInsec + factor(BMIcat),
+                                           weights= .weights,
+                                           trace=F))))
+
+svymres2b(mfit)
+
+#female
+ffit <- withReplicates(bootFemale, 
+                       quote(coef(multinom(consid ~ foodInsec + factor(BMIcat),
+                                           weights= .weights,
+                                           trace=F))))
+svymres2b(ffit)
+############################################################
+#update survey:
+bootMale <- update(bootMale, inctopov = ifelse(is.na(INDFMPIR.x), 0, ifelse(INDFMPIR.x <= 1, 1,
+                                               ifelse(INDFMPIR.x <= 2, 2,
+                                                      ifelse(INDFMPIR.x <= 3, 3,
+                                                             ifelse(INDFMPIR.x <= 4, 4,
+                                                                    ifelse(INDFMPIR.x <= 5, 5,
+                                                                           0)))))))
+
+bootFemale <- update(bootFemale, inctopov = ifelse(is.na(INDFMPIR.x), 0, 
+                                                   ifelse(INDFMPIR.x <= 1, 1,
+                                                         ifelse(INDFMPIR.x <= 2, 2,
+                                                                  ifelse(INDFMPIR.x <= 3, 3,
+                                                                  ifelse(INDFMPIR.x <= 4, 4,
+                                                                        ifelse(INDFMPIR.x <= 5, 5,
+                                                                          0)))))))
+
+dat <- dat %>%
+  mutate(inctopov = ifelse(is.na(INDFMPIR.x), 0, ifelse(INDFMPIR.x <= 1, 1,
+                                                                   ifelse(INDFMPIR.x <= 2, 2,
+                                                                          ifelse(INDFMPIR.x <= 3, 3,
+                                                                                 ifelse(INDFMPIR.x <= 4, 4,
+                                                                                        ifelse(INDFMPIR.x <= 5, 5,
+                                                                                               0)))))))
+
+bootMale <- update(bootMale, ageCat = ifelse(RIDAGEYR.x <= 29, 1,
+                                             ifelse(RIDAGEYR.x <= 39, 2,
+                                                    ifelse(RIDAGEYR.x <= 49, 3, 
+                                                           ifelse(RIDAGEYR.x <= 59, 4, 5)))))
+
+bootFemale <- update(bootFemale, ageCat = ifelse(RIDAGEYR.x <= 29, 1,
+                                                 ifelse(RIDAGEYR.x <= 39, 2,
+                                                        ifelse(RIDAGEYR.x <= 49, 3, 
+                                                               ifelse(RIDAGEYR.x <= 59, 4, 5)))))
+
+
+table(dat$inctopov, dat$fsWithHunger)
+prop.table(table(dat$inctopov, dat$fsWithHunger),2)
+
+table(dat$edu, dat$fsWithHunger)
+prop.table(table(dat$edu, dat$fsWithHunger),2)
+
+###################################################
+
+#Now I fit the models: warning this is screwy looking!!!
+
+#adjusted for bmi, race, income to pov ratio, and age
+mfit <- withReplicates(bootMale, 
+                       quote(coef(multinom(likeTo ~ foodInsec + factor(BMIcat) +
+                                             factor(inctopov) + factor(Race) + factor(ageCat),
+                                           weights= .weights,
+                                           trace=F))))
+
+svymres2b(mfit)
+
+#female
+ffit <- withReplicates(bootFemale, 
+                       quote(coef(multinom(likeTo ~ foodInsec + factor(BMIcat)+
+                                             factor(inctopov) + factor(Race) + factor(ageCat),
+                                           weights= .weights,
+                                           trace=F))))
+svymres2b(ffit)
+
+##################################################################################
+#How they Consider Weight
+
+mfit <- withReplicates(bootMale, 
+                       quote(coef(multinom(consid ~ foodInsec + factor(BMIcat)+
+                                             factor(inctopov) + factor(Race) + factor(age4),
+                                           weights= .weights,
+                                           trace=F))))
+
+svymres2b(mfit)
+
+#female
+ffit <- withReplicates(bootFemale, 
+                       quote(coef(multinom(consid ~ foodInsec + factor(BMIcat)+
+                                             factor(inctopov) + factor(Race) + factor(age4),
+                                           weights= .weights,
+                                           trace=F))))
+svymres2b(ffit)
+######################################################################
+#doing abt wt
+mfit <- withReplicates(bootMale, 
+                       quote(coef(multinom(doingWt ~ foodInsec + factor(BMIcat)+
+                                             factor(inctopov) + factor(Race) + factor(age4),
+                                           weights= .weights,
+                                           trace=F))))
+
+svymresb(mfit)
+
+#female
+ffit <- withReplicates(bootFemale, 
+                       quote(coef(multinom(doingWt ~ foodInsec + factor(BMIcat)+
+                                             factor(inctopov) + factor(Race) + factor(age4),
+                                           weights= .weights,
+                                           trace=F))))
+svymresb(ffit)
+
+
+xtabs(~dat$fsWithHunger+ dat$consid + dat$likeTo)
+prop.table(xtabs(~dat$fsWithHunger+ dat$consid + dat$likeTo),2)
+
+
+
+#create Table One
+#visualize some of this
+dat %>%
+  ggplot(aes(x = fsWithHunger, y = BMXBMI))+ geom_boxplot() +
+  facet_grid(~Male)
+
+dat %>%
+  ggplot(aes(x = fsWithHunger, y = RIDAGEYR.x))+ geom_boxplot() +
+  facet_grid(~Male)
+
+dat %>%
+  ggplot(aes(x = doingWt, y = RIDAGEYR.x))+ geom_boxplot() +
+  facet_grid(~Male)
+
+dat %>%
+  ggplot(aes(x = doingWt, y = BMXBMI))+ geom_boxplot() +
+  facet_grid(Male~.) 
