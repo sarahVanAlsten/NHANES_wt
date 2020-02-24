@@ -307,12 +307,12 @@ male.fs.no.hunger$est[17:24]
 female.fs.with.hunger$est[17:24]
 male.fs.with.hunger$est[17:24]
 
-
 # Survey Adjusted Models --------------------------------------------------
 
 #create a bootstrap replicate weight set
 bootMale <-as.svrepdesign(male.svy, type="bootstrap", replicates=10)
 bootFemale <-as.svrepdesign(fema.svy, type="bootstrap", replicates=10)
+bootAll <- as.svrepdesign(svy, type = "bootstrap", replicates = 100)
 ########################################################################################
 #function to get ORs and 95% confidence intervals for the models
 #note that the food security variable MUST be the first coefficent to get the right result
@@ -414,8 +414,21 @@ svymres2 <- function(mod){
                      sprintf(exp(mfitcoef$fs_hunger_lower), fmt = "%.3f"), " - ",
                      sprintf(exp(mfitcoef$fs_hunger_upper), fmt = "%.3f"), ")")), sep = "\n")
 }
+
+
+#remotes::install_github("carlganz/svrepmisc")
+library(svrepmisc)
+
+
 #####################################################################
 #Now I fit the models: warning this is screwy looking!!!
+allfit <- withReplicates(bootAll, 
+                       quote(coef(multinom(doingWt ~ fsWithHunger,
+                                           weights= .weights,
+                                           trace=F))))
+
+svymres(allfit)
+
 #male
 mfit <- withReplicates(bootMale, 
                        quote(coef(multinom(doingWt ~ fsWithHunger,
@@ -439,6 +452,13 @@ mfit <- withReplicates(bootMale,
 
 svymres(mfit)
 
+afit <- withReplicates(bootAll, 
+                       quote(coef(multinom(doingWt ~ fsWithHunger + factor(BMIcat),
+                                           weights= .weights,
+                                           trace=F))))
+
+svymres(afit)
+
 #female
 ffit <- withReplicates(bootFemale, 
                        quote(coef(multinom(doingWt ~ fsWithHunger + factor(BMIcat),
@@ -455,6 +475,16 @@ mfit <- withReplicates(bootMale,
 
 svymres(mfit)
 
+
+#all
+afit <- withReplicates(bootAll, 
+                       quote(coef(multinom(doingWt ~ fsWithHunger + factor(BMIcat) +
+                                             factor(age4)+ factor(edu) + factor(Race),
+                                           weights= .weights,
+                                           trace=F))))
+
+svymres(afit)
+
 #female
 ffit <- withReplicates(bootFemale, 
                        quote(coef(multinom(doingWt ~ fsWithHunger + factor(BMIcat) +
@@ -463,6 +493,13 @@ ffit <- withReplicates(bootFemale,
                                            trace=F))))
 svymres(ffit)
 ##################################################################
+#test interactions by sex and race
+svymultinom(formula = doingWt ~ fsWithHunger*factor(Race), design = bootAll)
+svymultinom(formula = doingWt ~ fsWithHunger*factor(Male), design = bootAll)
+svymultinom(formula = doingWt ~ fsWithHunger*factor(Male)*factor(Race), design = bootAll)
+
+#the interactions are not statistically significant
+#########################################################
 #what you would like to weigh
 #male
 mfit <- withReplicates(bootMale, 
@@ -478,6 +515,13 @@ ffit <- withReplicates(bootFemale,
                                            weights= .weights,
                                            trace=F))))
 svymres2(ffit)
+
+#female
+afit <- withReplicates(bootAll, 
+                       quote(coef(multinom(likeTo ~ fsWithHunger,
+                                           weights= .weights,
+                                           trace=F))))
+svymres2(afit)
 #########################################################
 #BMI adjusted
 mfit <- withReplicates(bootMale, 
@@ -493,6 +537,13 @@ ffit <- withReplicates(bootFemale,
                                            weights= .weights,
                                            trace=F))))
 svymres2(ffit)
+
+#all
+afit <- withReplicates(bootAll, 
+                       quote(coef(multinom(likeTo ~ fsWithHunger + factor(BMIcat),
+                                           weights= .weights,
+                                           trace=F))))
+svymres2(afit)
 ############################################
 #Fully Adjusted
 mfit <- withReplicates(bootMale, 
@@ -510,6 +561,20 @@ ffit <- withReplicates(bootFemale,
                                            weights= .weights,
                                            trace=F))))
 svymres2(ffit)
+
+#all
+afit <- withReplicates(bootAll, 
+                       quote(coef(multinom(likeTo ~ fsWithHunger + factor(BMIcat) +
+                                             factor(age4)+ factor(edu) + factor(Race),
+                                           weights= .weights,
+                                           trace=F))))
+svymres2(afit)
+#####################################
+#test interactions
+svymultinom(formula = likeTo ~ fsWithHunger*factor(Race), design = bootAll)
+svymultinom(formula = likeTo ~ fsWithHunger*factor(Male), design = bootAll)
+svymultinom(formula = likeTo ~ fsWithHunger*factor(Male)*factor(Race), design = bootAll)
+
 ##################################################################################
 #How they Consider Weight
 #male
@@ -526,6 +591,13 @@ ffit <- withReplicates(bootFemale,
                                            weights= .weights,
                                            trace=F))))
 svymres2(ffit)
+
+#all
+afit <- withReplicates(bootFemale, 
+                       quote(coef(multinom(consid ~ fsWithHunger,
+                                           weights= .weights,
+                                           trace=F))))
+svymres2(afit)
 #########################################################
 #BMI adjusted
 mfit <- withReplicates(bootMale, 
@@ -541,6 +613,14 @@ ffit <- withReplicates(bootFemale,
                                            weights= .weights,
                                            trace=F))))
 svymres2(ffit)
+
+
+#all
+afit <- withReplicates(bootAll, 
+                       quote(coef(multinom(consid ~ fsWithHunger + factor(BMIcat),
+                                           weights= .weights,
+                                           trace=F))))
+svymres2(afit)
 ############################################
 #Fully Adjusted
 mfit <- withReplicates(bootMale, 
@@ -558,6 +638,21 @@ ffit <- withReplicates(bootFemale,
                                            weights= .weights,
                                            trace=F))))
 svymres2(ffit)
+
+#all
+afit <- withReplicates(bootAll, 
+                       quote(coef(multinom(consid ~ fsWithHunger + factor(BMIcat) +
+                                             factor(age4)+ factor(edu) + factor(Race),
+                                           weights= .weights,
+                                           trace=F))))
+svymres2(afit)
+#############################################################
+#test interactions
+
+svymultinom(formula = consid ~ fsWithHunger*factor(Race), design = bootAll)
+svymultinom(formula = consid ~ fsWithHunger*factor(Male), design = bootAll)
+svymultinom(formula = consid ~ fsWithHunger*factor(Male)*factor(Race), design = bootAll)
+
 #############################################################
 dat <- dat %>%
   mutate(foodInsec = ifelse(fsWithHunger %in% c(1,2), 1,

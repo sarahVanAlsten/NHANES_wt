@@ -73,10 +73,9 @@ loseBx <- dat %>%
 
 loseBxFS <- dat %>%
   filter(lastYrLose == 1) %>%
-  #group by Race and Sex %>%
   drop_na(fsWithHunger) %>%
   mutate(FSany = ifelse(fsWithHunger %in%c (1,2), 1, ifelse(fsWithHunger == 0, 0, NA)))%>%
-  group_by(Race, Male, FSany) %>%
+  group_by(Male, FSany) %>%
   summarise_at(vars(contains("lastYr")), .funs = ~(sum(. == 1, na.rm = T)))
 
 #keep it separated by fs with hunger
@@ -85,8 +84,18 @@ loseBxFS <- dat %>%
   #group by Race and Sex %>%
   drop_na(fsWithHunger) %>%
   mutate(FSany = ifelse(fsWithHunger %in%c (1,2), 1, ifelse(fsWithHunger == 0, 0, NA)))%>%
-  group_by(Race, Male, fsWithHunger) %>%
+  group_by(Male, fsWithHunger) %>%
   summarise_at(vars(contains("lastYr")), .funs = ~(sum(. == 1, na.rm = T)))
+
+
+loseBxFSPerc <- dat %>%
+  filter(lastYrLose == 1) %>%
+  #group by Race and Sex %>%
+  drop_na(fsWithHunger) %>%
+  mutate(FSany = ifelse(fsWithHunger %in%c (1,2), 1, ifelse(fsWithHunger == 0, 0, NA)))%>%
+  group_by(Male,fsWithHunger) %>%
+  summarise_at(vars(contains("lastYr")), .funs = ~(sum(. == 1, na.rm = T)/(sum(. == 0, na.rm = T)+sum(. == 1, na.rm=T))))
+
 
 #also get %
 loseBxPerc <- dat %>%
@@ -112,7 +121,7 @@ loseBxFSPerc <- dat %>%
   #group by Race and Sex %>%
   drop_na(fsWithHunger) %>%
   mutate(FSany = ifelse(fsWithHunger %in%c (1,2), 1, ifelse(fsWithHunger == 0, 0, NA)))%>%
-  group_by(Race, Male, fsWithHunger) %>%
+  group_by(Male, fsWithHunger) %>%
   summarise_at(vars(contains("lastYr")), .funs = ~(sum(. == 1, na.rm = T)/
                                                      (sum(. == 0, na.rm = T)+sum(. == 1, na.rm=T))))
 
@@ -183,6 +192,7 @@ loseBxPercep <- dat %>%
   #group by Race and Sex %>%
   group_by(Race, Male, ConsiderWt) %>%
   summarise_at(vars(contains("lastYr")), .funs = ~(sum(. == 1, na.rm = T)))
+
 
 loseBxPercepPerc <- dat %>%
   filter(lastYrLose == 1) %>%
