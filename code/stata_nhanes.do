@@ -7,6 +7,12 @@ use "C:/Users/sarah.vanalsten/Downloads/nhanes.dta", clear
 //recode a new age variable
 recode RIDAGEYR (18/30 = 1) (30/40 = 2) (40/50 = 3) (50/max = 4), gen(ageNew)
 
+gen raceNew = .
+replace raceNew = 0 if Race ==0 
+replace raceNew = 1 if Race > 0
+
+tab Race raceNew
+
 tab ageNew
 
 //set the survey sampling wt
@@ -229,11 +235,17 @@ test 1.fsWithHunger#3.Race 2.fsWithHunger#3.Race , nosvyadjust
 //3 way interaction?... Nope
 svy: mlogit doingWt i.fsWithHunger##i.Race##i.Male i.ageNew i.edu i.BMIcat, rrr
 
-//because of effect mod, get subpops by race
+
+svy: mlogit doingAbtWt i.fsWithHunger##i.raceNew, rrr baseoutcome(5)
+mlogtest, wald
+
+svy:mlogit doingAbtWt i.fsWithHunger##i.raceNew i.ageNew i.edu i.BMIcat i.Male i.depressionBinary, rrr baseoutcome(5)
+//because of effect mod, get subpops by race.. issues seem to be with having empty cells :(
 svy, subpop(if Race == 0): mlogit doingAbtWt i.fsWithHunger i.ageNew i.edu i.BMIcat i.Male, rrr baseoutcome(5)
-svy, subpop(if Race == 1): mlogit doingAbtWt i.fsWithHunger i.ageNew i.edu i.BMIcat i.Male, rrr baseoutcome(5)
-svy, subpop(if Race == 2): mlogit doingAbtWt i.fsWithHunger i.ageNew i.edu i.BMIcat i.Male, rrr baseoutcome(5)
-svy, subpop(if Race == 3): mlogit doingAbtWt i.fsWithHunger i.ageNew i.edu i.BMIcat i.Male, rrr baseoutcome(5)
+svy, subpop(if raceNew == 1): mlogit doingAbtWt i.fsWithHunger i.ageNew i.BMIcat i.Male i.edu, rrr baseoutcome(5)
+
+svy, subpop(if Race == 0): mlogit doingAbtWt i.fsWithHunger i.ageNew i.edu i.BMIcat i.Male i.depressionBinary, rrr baseoutcome(5)
+svy, subpop(if raceNew == 1): mlogit doingAbtWt i.fsWithHunger i.ageNew i.BMIcat i.Male i.edu i.depressionBinary, rrr baseoutcome(5)
 
 /////////////////////////////////////////////////////////////////////
 // What they would like to weigh
@@ -267,19 +279,23 @@ svy: mlogit likeToWeigh i.fsWithHunger##i.Race i.ageNew i.edu i.Male i.BMIcat i.
 svy: mlogit likeToWeigh i.fsWithHunger##i.Male i.ageNew i.edu i.Race i.BMIcat i.depressionBinary, rrr baseoutcome(1)
 svy: mlogit likeToWeigh i.fsWithHunger##i.Male##i.Race i.ageNew i.edu  i.BMIcat i.depressionBinary, rrr baseoutcome(1)
 
+svy, subpop(if Male ==0): mlogit likeToWeigh i.fsWithHunger i.Race i.ageNew i.edu i.BMIcat, rrr baseoutcome(1)
+svy, subpop(if Male ==1): mlogit likeToWeigh i.fsWithHunger i.Race i.ageNew i.edu i.BMIcat, rrr baseoutcome(1)
+
+svy, subpop(if Male ==0): mlogit likeToWeigh i.fsWithHunger i.Race i.ageNew i.depressionBinary i.edu i.BMIcat, rrr baseoutcome(1)
+svy, subpop(if Male ==1): mlogit likeToWeigh i.fsWithHunger i.Race i.ageNew i.depressionBinary i.edu i.BMIcat, rrr baseoutcome(1)
+
+
 svy: mlogit consid i.fsWithHunger##i.Race i.Male i.ageNew i.edu  i.BMIcat i.depressionBinary, rrr baseoutcome(1)
 svy: mlogit consid i.fsWithHunger##i.Male i.ageNew i.edu i.Race i.BMIcat i.depressionBinary, rrr baseoutcome(1)
 svy: mlogit consid i.fsWithHunger##i.Male##i.Race i.ageNew i.edu  i.BMIcat i.depressionBinary, rrr baseoutcome(1)
 
 //because of effect mod, get subpops by sex AND Race
-svy, subpop(if Male == 1 & Race == 0): mlogit consid i.fsWithHunger i.ageNew i.edu i.BMIcat, rrr baseoutcome(1)
-svy, subpop(if Male == 1 & Race == 1): mlogit consid i.fsWithHunger i.ageNew i.edu i.BMIcat, rrr baseoutcome(1)
-svy, subpop(if Male == 1 & Race == 2): mlogit consid i.fsWithHunger i.ageNew i.edu i.BMIcat, rrr baseoutcome(1)
-svy, subpop(if Male == 1 & Race == 3): mlogit consid i.fsWithHunger i.ageNew i.edu i.BMIcat, rrr baseoutcome(1)
-svy, subpop(if Male == 0 & Race == 0): mlogit consid i.fsWithHunger i.ageNew i.edu i.BMIcat, rrr baseoutcome(1)
-svy, subpop(if Male == 0 & Race == 1): mlogit consid i.fsWithHunger i.ageNew i.edu i.BMIcat, rrr baseoutcome(1)
-svy, subpop(if Male == 0 & Race == 2): mlogit consid i.fsWithHunger i.ageNew i.edu i.BMIcat, rrr baseoutcome(1)
-svy, subpop(if Male == 0 & Race == 3): mlogit consid i.fsWithHunger i.ageNew i.edu i.BMIcat, rrr baseoutcome(1)
+svy, subpop(if Male == 1): mlogit consid i.fsWithHunger i.ageNew i.edu i.BMIcat i.Race, rrr baseoutcome(1)
+svy, subpop(if Male == 0): mlogit consid i.fsWithHunger i.ageNew i.edu i.BMIcat i.Race, rrr baseoutcome(1)
+svy, subpop(if Male == 1): mlogit consid i.fsWithHunger i.ageNew i.edu i.BMIcat i.Race i.depressionBinary, rrr baseoutcome(1)
+svy, subpop(if Male == 0): mlogit consid i.fsWithHunger i.ageNew i.edu i.BMIcat i.Race i.depressionBinary, rrr baseoutcome(1)
+
 
 margins
 mchange
