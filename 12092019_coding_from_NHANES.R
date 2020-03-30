@@ -844,7 +844,8 @@ dat <- dat %>%
                                  ifelse(drink12mo == 1, 1,
                                         ifelse(drinking < 1 | !is.na(everdrink12), 0, NA)))))
 
-
+foreign::write.dta(dat, "data\\nhanes30.dta")
+plot(dat$RIDAGEYR, dat$age4)
 ##########################################################################
 #create a survey sample design by the primary sampling unit, the stratum, and the revised cycle weight
 #(for combining surveys from 5, 4, 3, 2, and 1) cycles
@@ -864,6 +865,7 @@ nhanes.2007.to.2012 <- dat[!dat$cycle %in% "2013-2014",]
 write.csv(dat, "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\12092019nhanes.csv")
 write.csv(nhanes.2007.to.2012, "C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\12092019no2013.csv")
 dat <- readr::read_csv("C:\\Users\\Owner\\OneDrive\\Documents\\Duncan_Lab_2018\\NHANES_WeightPerception\\NHANES_wt\\data\\12092019nhanes.csv")
+
 #########################################################################
 #Cross tabs of each of the weight behavior variables, separated out by sex
 male <- nhanes.2007.to.2012[nhanes.2007.to.2012$Male == 1,]
@@ -1022,18 +1024,39 @@ names(dat)
 used <- dat %>%
   select(fsAny, fsWithHunger, Race, RIDAGEYR, Male, doingAbtWt,
          ConsiderWt, LikeToWeigh, depression, depressionBinary, edu, BMXBMI,
-         BMIcat, WTMEC10YR, SDMVPSU, SDMVSTRA, SEQN, Income, cycle.x.4,
+         BMIcat, WTMEC10YR, SDMVPSU, SDMVSTRA, SEQN, Income, cycle,
          RIAGENDR, phq9, obese)
 
-foreign::write.dta(used, "C:\\Users\\sarah.vanalsten\\Downloads\\nhanes2.dta")
+#write to dta for stata analysis
+foreign::write.dta(used, "data\\nhanes2.dta")
+used <- haven::read_dta("data\\nhanes2.dta")
+table(used$cycle)
 
 table(dat$BMIcat, dat$fsWithHunger)
 prop.table(table(dat$BMIcat, dat$fsWithHunger),2)
 xtabs(~dat$BMIcat+dat$fsWithHunger+ dat$Race)
 
-
+#plot how obesity*food insecurity has changed over time
 dat %>%
   ggplot(aes(x= cycle.x.1)) + geom_bar(stat = "count")+ facet_grid(BMIcat~fsAny)
 
+dat %>%
+  ggplot(aes(x= cycle.x.1, fill = factor(obese))) + 
+  geom_bar(position = "fill")+
+  facet_grid(~fsAny)
 
-xtabs(~dat$fsAny+dat$Race+dat$doingAbtWt+dat$maleFact+dat$BMIcat)
+#redo polychoric correlations
+polycor::polychor(x = dat$considerWeightFact, y = dat$likeToWeighFact, std.err = T)
+polycor::polychor(x = dat$considerWeightFact, y = dat$doingAbtWt, std.err = T)
+polycor::polychor(x = dat$considerWeightFact, y = dat$BMIcat, std.err = T)
+polycor::polychor(x = dat$considerWeightFact, y = dat$fsAny, std.err = T)
+polycor::polychor(x = dat$likeToWeighFact, y = dat$doingAbtWt, std.err = T)
+polycor::polychor(x = dat$likeToWeighFact, y = dat$BMIcat, std.err = T)
+polycor::polychor(x = dat$likeToWeighFact, y = dat$fsAny, std.err = T)
+polycor::polychor(x = dat$BMIcat, y = dat$doingAbtWt, std.err = T)
+polycor::polychor(x = dat$BMIcat, y = dat$fsAny, std.err = T)
+polycor::polychor(x = dat$fsAny, y = dat$doingAbtWt, std.err = T)
+
+table(dat$considerWeightFact, dat$likeToWeighFact)
+table(dat$considerWeightFact, dat$doingAbtWt)
+table(dat$likeToWeighFact, dat$doingAbtWt)

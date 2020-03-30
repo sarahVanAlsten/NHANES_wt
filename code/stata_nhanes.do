@@ -2,6 +2,7 @@
 //note: you need spost13 for some of these commands
 
 //read in the data
+//use "C:/Users/sarah.vanalsten/Downloads/nhanes.dta", clear
 use "C:/Users/sarah.vanalsten/Downloads/nhanes.dta", clear
 
 //recode a new age variable
