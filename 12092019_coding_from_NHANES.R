@@ -1060,3 +1060,286 @@ polycor::polychor(x = dat$fsAny, y = dat$doingAbtWt, std.err = T)
 table(dat$considerWeightFact, dat$likeToWeighFact)
 table(dat$considerWeightFact, dat$doingAbtWt)
 table(dat$likeToWeighFact, dat$doingAbtWt)
+
+#make a table of descriptives (ie a table one)
+svy <- survey::svydesign(id=~SDMVPSU, 
+                                  strata = ~SDMVSTRA, 
+                                  weights=~WTMEC10YR, 
+                                  nest = TRUE, 
+                                  data=dat)
+svy <- update(svy, ageNew = ifelse(dat$RIDAGEYR <= 29, 1,
+                                   ifelse(dat$RIDAGEYR <= 39, 2,
+                                          ifelse(dat$RIDAGEYR <= 49, 3,
+                                                 ifelse(dat$RIDAGEYR <= 59, 4,
+                                                        ifelse(!is.na(dat$RIDAGEYR), 5, NA))))))
+svy <- update(svy, fsAny = ifelse(fsWithHunger %in% c(1,2), 1, 0))
+
+write.csv( print(
+svyCreateTableOne(vars = c("BMIcat", "Male", "Race",
+                           "edu", "ageNew", "depressionBinary",
+                           "considerWeightFact", "likeToWeighFact", "doingAbtWt"),
+                  strata = "fsAny",
+                  factorVars = c("BMIcat", "Male", "Race",
+                                 "edu", "ageNew", "depressionBinary",
+                                 "considerWeightFact", "likeToWeighFact", "doingAbtWt"),
+                  data = svy)
+), "data\\tableone.csv")
+
+dat$ageNew <-ifelse(dat$RIDAGEYR <= 29, 1,
+             ifelse(dat$RIDAGEYR <= 39, 2,
+                    ifelse(dat$RIDAGEYR <= 49, 3,
+                           ifelse(dat$RIDAGEYR <= 59, 4,
+                                  ifelse(!is.na(dat$RIDAGEYR), 5, NA)))))
+dat$fsAny <- ifelse(dat$fsWithHunger %in% c(1,2), 1, 0)
+
+write.csv( print(
+  CreateTableOne(vars = c("BMIcat", "Male", "Race",
+                             "edu", "ageNew", "depressionBinary",
+                             "considerWeightFact", "likeToWeighFact", "doingAbtWt"),
+                    strata = "fsAny",
+                    factorVars = c("BMIcat", "Male", "Race",
+                                   "edu", "ageNew", "depressionBinary",
+                                   "considerWeightFact", "likeToWeighFact", "doingAbtWt"),
+                    data = dat)
+), "data\\tableone.csv")
+
+
+#mers from stata
+
+mer.ltw <- str_split(
+"Food Secure Female_Pr(y),	0.881,	0.116,	0.003,
+Food Secure Female_ll,	0.870,	0.105,	0.002,
+Food Secure Female_ul,	0.892,	0.127,	0.004,
+Food Secure Male_Pr(y),	0.607,	0.354,	0.039,
+Food Secure Male_ll,	0.587,	0.334,	0.033,
+Food Secure Male_ul,	0.627,	0.374,	0.045,
+Food Insecure Female_Pr~),	0.848,	0.144,	0.008,
+Food Insecure Female_ll,	0.827,	0.124,	0.006,
+Food Insecure Female_ul,	0.869,	0.163,	0.011,
+Food Insecure Male_Pr(y),	0.601,	0.344,	0.055,
+Food Insecure Male_ll,	0.566,	0.316,	0.044,
+Food Insecure Male_ul,	0.636,	0.373,	0.067", pattern = ",")
+
+mer.ltw <- unlist(mer.ltw)
+mer.ltw <- matrix(mer.ltw, ncol = 4, byrow = T)
+mer.ltw <- mer.ltw %>% as.data.frame
+names(mer.ltw) <- c("classification", "weigh less", "weigh same", "weigh more")
+mer.ltw$estimate_type <- ifelse(str_detect(mer.ltw$classification, pattern= "Pr"), "estimate",
+                                ifelse(str_detect(mer.ltw$classification, pattern = "ll"), "lower",
+                                "upper"))
+mer.ltw$classification <- str_remove_all(mer.ltw$classification, "_ll")
+mer.ltw$classification <- str_remove_all(mer.ltw$classification, "_ul")
+mer.ltw$classification <- str_remove_all(mer.ltw$classification, "_Pr~\\)")
+mer.ltw$classification <- str_remove_all(mer.ltw$classification, "_Pr\\(y\\)")
+mer.ltw$sex <- ifelse(str_detect(mer.ltw$classification, pattern= "Female"), "Female","Male")
+mer.ltw$food_insecurity <- ifelse(str_detect(mer.ltw$classification, pattern= "Insecure"), 
+                                  "Food Insecure","Food Secure")
+mer.ltw$`weigh less` <- parse_number(as.character(mer.ltw$`weigh less`))
+mer.ltw$`weigh same` <- parse_number(as.character(mer.ltw$`weigh same`))
+mer.ltw$`weigh more` <- parse_number(as.character(mer.ltw$`weigh more`))
+
+#plot it 
+mer.ltw %>%
+  pivot_longer(cols = c("weigh less", "weigh same", "weigh more")) %>%
+  select(-classification) %>%
+  pivot_wider(id_cols = c("sex", "food_insecurity", "name"), names_from = "estimate_type") %>%
+  mutate(name = str_remove_all(name, "weigh ")) %>%
+  ggplot(aes(x = food_insecurity, y = estimate, group = name, color = name)) + 
+  geom_point() + geom_path()+
+  facet_wrap(~sex) + theme_bw() + geom_errorbar(aes(ymin = lower, ymax = upper), width = .1) +
+  labs(x = "Food Security", y = "Probability", color = "Desired Weight")
+
+ame.ltw <- matrix(c(0, 1, 0.564, 0.332, 0.104,
+             1, 1, 0.558, 0.310, 0.132,
+             0, 0, 0.778, 0.199, 0.023,
+             1, 0, 0.739, 0.211, 0.050),
+             ncol = 5, byrow = T)
+ame.ltw <- as.data.frame(ame.ltw)
+names(ame.ltw) <- c("food_security", "male", "less", "same", "more")
+ame.ltw %>%
+  pivot_longer(cols = c("less", "same", "more")) %>%
+  mutate(male = ifelse(male == 0, "Female", "Male")) %>%
+  mutate(food_security = ifelse(food_security == 0, "Secure", "Insecure")) %>%
+  mutate(name = ifelse(name == "less", "Less",
+                       ifelse(name == "more", "More", "Same"))) %>% 
+  ggplot(aes(x = factor(food_security), y = value, group = factor(name), color = factor(name))) +
+  geom_point() + geom_path() + facet_grid(~male) + theme_bw() +
+  labs(x = "Food Security", y = "Predicted Probability", color = "Like to Weigh")
+
+#same plot in black and white
+ame.ltw %>%
+  pivot_longer(cols = c("less", "same", "more")) %>%
+  mutate(male = ifelse(male == 0, "Female", "Male")) %>%
+  mutate(food_security = ifelse(food_security == 0, "Secure", "Insecure")) %>%
+  mutate(name = ifelse(name == "less", "Less",
+                       ifelse(name == "more", "More", "Same"))) %>% 
+  ggplot(aes(x = factor(food_security), y = value, group = factor(name), shape = factor(name),
+             linetype = factor(name))) +
+  geom_point() + geom_path() + facet_grid(~male) + theme_bw() +
+  labs(x = "Food Security", y = "Predicted Probability", color = "Like to Weigh")
+
+
+#doing about weight and race
+mer.daw <- str_split(
+"Food Secure White_Pr(y) ,0.166, 0.032, 0.387, 0.093, 0.323,
+Food Secure White_ll ,0.153, 0.028, 0.366, 0.084, 0.301,
+Food Secure White_ul ,0.179, 0.037, 0.408, 0.101, 0.344,
+Food Secure Black_Pr(y) ,0.157, 0.069, 0.321, 0.072, 0.381,
+Food Secure Black_ll ,0.141, 0.056, 0.299, 0.061, 0.356,
+Food Secure Black_ul ,0.172, 0.081, 0.343, 0.083, 0.407,
+Food Secure Hispanic_Pr(y) ,0.152, 0.039, 0.387, 0.086, 0.335,
+Food Secure Hispanic_ll ,0.134, 0.031, 0.354, 0.072, 0.304,
+Food Secure Hispanic_ul ,0.170, 0.048, 0.421, 0.100, 0.365,
+Food Secure Other_Pr(y) ,0.114, 0.034, 0.411, 0.067, 0.374,
+Food Secure Other_ll ,0.085, 0.022, 0.370, 0.049, 0.337,
+Food Secure Other_ul ,0.142, 0.047, 0.452, 0.085, 0.411,
+Food Insecure White_Pr(y) ,0.163, 0.084, 0.333, 0.080, 0.340,
+Food Insecure White_ll ,0.137, 0.068, 0.301, 0.062, 0.307,
+Food Insecure White_ul ,0.190, 0.100, 0.365, 0.098, 0.372,
+Food Insecure Black_Pr(y) ,0.172, 0.097, 0.277, 0.088, 0.367,
+Food Insecure Black_ll ,0.153, 0.082, 0.249, 0.068, 0.332,
+Food Insecure Black_ul ,0.190, 0.112, 0.305, 0.107, 0.402,
+Food Insecure Hispanic_P~) ,0.157, 0.057, 0.364, 0.065, 0.356,
+Food Insecure Hispanic_ll ,0.135, 0.047, 0.332, 0.051, 0.326,
+Food Insecure Hispanic_ul ,0.178, 0.068, 0.397, 0.080, 0.387,
+Food Insecure Other_Pr(y) ,0.140, 0.049, 0.384, 0.078, 0.349,
+Food Insecure Other_ll ,0.107, 0.025, 0.321, 0.048, 0.284,
+Food Insecure Other_ul ,0.174, 0.072, 0.448, 0.107, 0.414", pattern = ",")
+
+mer.daw <- mer.daw %>%
+  unlist() %>%
+  matrix(ncol = 6, byrow = TRUE) %>%
+  as.data.frame()
+
+names(mer.daw) <- c("classification", "lost_intended", "lost_unintended", 
+                    "tried_lose", "tried_not_gain", "none")
+mer.daw$estimate_type <- ifelse(str_detect(mer.daw$classification, pattern= "_P"), "estimate",
+                                ifelse(str_detect(mer.daw$classification, pattern = "ll"), "lower",
+                                       "upper"))
+mer.daw[, 2:6] <- apply(mer.daw[, 2:6], FUN= as.character,MARGIN = 2)
+mer.daw$classification <- str_remove_all(mer.daw$classification, "_ll")
+mer.daw$classification <- str_remove_all(mer.daw$classification, "_ul")
+mer.daw$classification <- str_remove_all(mer.daw$classification, "_Pr~\\)")
+mer.daw$classification <- str_remove_all(mer.daw$classification, "_Pr\\(y\\)")
+mer.daw$classification <- str_remove_all(mer.daw$classification, "_P~\\)")
+
+mer.daw$race <- ifelse(str_detect(mer.daw$classification, pattern= "White"), "White",
+                       ifelse(str_detect(mer.daw$classification, pattern = "Black"), "Black",
+                       ifelse(str_detect(mer.daw$classification, pattern = "Hispanic"), "Hispanic",
+                              "Other")))
+mer.daw$food_insecurity <- ifelse(str_detect(mer.daw$classification, pattern= "Insecure"), 
+                                  "Food Insecure","Food Secure")
+mer.daw[, 2:6] <- apply(mer.daw[, 2:6], FUN= str_remove_all, pattern = " ", MARGIN = 2)
+mer.daw[, 2:6] <- apply(mer.daw[, 2:6], FUN= as.numeric, MARGIN = 2)
+
+#plot it 
+mer.daw %>%
+  pivot_longer(cols = c("lost_intended", "lost_unintended", 
+                        "tried_lose", "tried_not_gain", "none")) %>%
+  select(-classification) %>%
+  pivot_wider(id_cols = c("race", "food_insecurity", "name"), names_from = "estimate_type") %>%
+  mutate(food_insecurity = str_remove_all(food_insecurity, "Food ")) %>%
+  mutate(name = ifelse(name == "lost_unintended", "Unintentional Loss",
+                       ifelse(name == "lost_intended", "Intentional Loss",
+                              ifelse(name == "none", "None",
+                                     ifelse(name == "tried_lose", "Attempted Loss", "Not Gain"))))) %>%
+  ggplot(aes(x = food_insecurity, y = estimate, group = name, color = name)) + 
+  geom_point() + geom_path()+
+  facet_grid(name~race) + theme_bw() + geom_errorbar(aes(ymin = lower, ymax = upper), width = .1) +
+  labs(x = "Food Security", y = "Probability", color = "Desired Weight")
+
+
+mer.daw %>%
+  pivot_longer(cols = c("lost_intended", "lost_unintended", 
+                        "tried_lose", "tried_not_gain", "none")) %>%
+  select(-classification) %>%
+  pivot_wider(id_cols = c("race", "food_insecurity", "name"), names_from = "estimate_type") %>%
+  ggplot(aes(x = food_insecurity, y = estimate, group = name, color = name)) + 
+  geom_point() + geom_path()+
+  facet_grid(~race) + theme_bw() + geom_errorbar(aes(ymin = lower, ymax = upper), width = .1) +
+  labs(x = "Food Security", y = "Probability", color = "Desired Weight")
+
+
+mer.daw %>%
+  pivot_longer(cols = c("lost_intended", "lost_unintended", 
+                        "tried_lose", "tried_not_gain", "none")) %>%
+  select(-classification) %>%
+  pivot_wider(id_cols = c("race", "food_insecurity", "name"), names_from = "estimate_type") %>%
+  ggplot(aes(x = food_insecurity, y = estimate, group = race, color = race)) + 
+  geom_point() + geom_path()+
+  facet_grid(~name) + theme_bw() + geom_errorbar(aes(ymin = lower, ymax = upper), width = .1) +
+  labs(x = "Food Security", y = "Probability", color = "Desired Weight")
+
+
+#using ames
+ame.daw <- matrix(c(1, 0, 0.162, 0.087, 0.336, 0.079, 0.337,
+             1, 1,  0.173, 0.099,0.284 ,0.086, 0.358,
+             0, 0, 0.161, 0.035, 0.382, 0.092, 0.330,
+             0, 1,   0.156, 0.071, 0.326, 0.071, 0.375 ,
+             0, 2,  0.149, 0.042, 0.384, 0.085, 0.339,
+             1, 2,  0.154, 0.060, 0.365, 0.065, 0.357,
+             0, 3,   0.112, 0.036,0.410,0.066 , 0.375 ,
+             1, 3,   0.138,0.051 , 0.383,0.077, 0.351
+            ), ncol = 7, byrow = T)
+ame.daw <- as.data.frame(ame.daw)
+names(ame.daw) <- c("food_security", "race", "lost_intended", "lost_unintended", 
+                    "tried_lose", "tried_not_gain", "none")
+
+#facet by race with food insecurity on x
+ame.daw %>%
+  pivot_longer(cols = c("lost_intended", "lost_unintended", 
+                        "tried_lose", "tried_not_gain", "none")) %>%
+  mutate(race = ifelse(race == 0, "White",
+                       ifelse(race == 1, "Black",
+                              ifelse(race == 2, "Hispanic", "Other")))) %>%
+  mutate(food_security = ifelse(food_security == 0, "Secure", "Insecure")) %>%
+  mutate(name = ifelse(name == "lost_unintended", "Unintentional Loss",
+                       ifelse(name == "lost_intended", "Intentional Loss",
+                              ifelse(name == "none", "None",
+                                     ifelse(name == "tried_lose", "Attempted Loss", "Not Gain"))))) %>%
+  ggplot(aes(x = food_security, y = value, 
+             group = factor(name),
+             color = factor(name))) +
+  geom_point() + geom_path()+
+  facet_grid(~factor(race)) +
+  theme_bw() + labs(x = "Food Security", y = "Predicted Probability", color = "Doing About Weight")
+
+#facet by security with race on x
+ame.daw %>%
+  pivot_longer(cols = c("lost_intended", "lost_unintended", 
+                        "tried_lose", "tried_not_gain", "none")) %>%
+  mutate(race = ifelse(race == 0, "White",
+                       ifelse(race == 1, "Black",
+                              ifelse(race == 2, "Hispanic", "Other")))) %>%
+  mutate(food_security = ifelse(food_security == 0, "Secure", "Insecure")) %>%
+  mutate(name = ifelse(name == "lost_unintended", "Unintentional Loss",
+                       ifelse(name == "lost_intended", "Intentional Loss",
+                              ifelse(name == "none", "None",
+                                     ifelse(name == "tried_lose", "Attempted Loss", "Not Gain"))))) %>%
+  ggplot(aes(x = food_security, y = value, 
+             group = factor(race),
+             color = factor(race))) +
+  geom_point() + geom_path()+
+  facet_grid(~factor(name)) +
+  theme_bw() + labs(x = "Food Security", y = "Predicted Probability", color = "Race")
+
+
+#facet by race with food insecurity on x
+ame.daw %>%
+  pivot_longer(cols = c("lost_intended", "lost_unintended", 
+                        "tried_lose", "tried_not_gain", "none")) %>%
+  mutate(race = ifelse(race == 0, "White",
+                       ifelse(race == 1, "Black",
+                              ifelse(race == 2, "Hispanic", "Other")))) %>%
+  mutate(food_security = ifelse(food_security == 0, "Secure", "Insecure")) %>%
+  mutate(name = ifelse(name == "lost_unintended", "Unintentional Loss",
+                       ifelse(name == "lost_intended", "Intentional Loss",
+                              ifelse(name == "none", "None",
+                                     ifelse(name == "tried_lose", "Attempted Loss", "Not Gain"))))) %>%
+  ggplot(aes(x = food_security, y = value, 
+             group = factor(name), 
+             linetype = factor(name),
+             shape = factor(name))) +
+  geom_point() + geom_path()+
+  facet_grid(~factor(race)) +
+  theme_bw() + labs(x = "Food Security", y = "Predicted Probability", color = "Doing About Weight")
